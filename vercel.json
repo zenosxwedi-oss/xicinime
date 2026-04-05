@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "artifacts/api-server/dist/index.mjs",
-      "use": "@vercel/node"
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build",
+  "outputDirectory": "artifacts/api-server/dist",
+  "functions": {
+    "artifacts/api-server/dist/index.mjs": {
+      "runtime": "@vercel/node@5"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
