@@ -32,11 +32,42 @@ jobs:
       - name: Build API server
         run: pnpm --filter @workspace/api-server run build
 
+      - name: Prepare Vercel output structure
+        run: |
+          mkdir -p .vercel/output/functions/api/index.func
+
+          cp artifacts/api-server/vercel-dist/handler.mjs .vercel/output/functions/api/index.func/index.mjs
+          for f in pino-worker.mjs pino-file.mjs pino-pretty.mjs thread-stream-worker.mjs; do
+            [ -f "artifacts/api-server/vercel-dist/$f" ] && cp "artifacts/api-server/vercel-dist/$f" ".vercel/output/functions/api/index.func/$f" || true
+          done
+
+          cat > .vercel/output/functions/api/index.func/.vc-config.json << 'EOF'
+          {
+            "handler": "index.mjs",
+            "launcherType": "Nodejs",
+            "runtime": "nodejs20.x",
+            "maxDuration": 30
+          }
+          EOF
+
+          cat > .vercel/output/config.json << 'EOF'
+          {
+            "version": 3,
+            "routes": [
+              { "src": "/(.*)", "dest": "/api/index" }
+            ]
+          }
+          EOF
+
+          cat > .vercel/project.json << 'EOF'
+          {
+            "orgId": "${{ secrets.VERCEL_ORG_ID }}",
+            "projectId": "${{ secrets.VERCEL_PROJECT_ID }}"
+          }
+          EOF
+
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Deploy to Vercel
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy to Vercel (prebuilt)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
