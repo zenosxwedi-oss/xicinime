@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const BASE = 'https://www.sankavollerei.com/anime/winbu';
+const BASE = 'https://www.sankavollerei.com/anime/samehadaku';
 
 export async function GET(
   _req: Request,

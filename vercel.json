@@ -1,6 +1,1 @@
-{
-  "version": 2,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
-  ]
-}
+{"framework":"nextjs","buildCommand":"next build","devCommand":"next dev","installCommand":"npm install","outputDirectory":".next"}

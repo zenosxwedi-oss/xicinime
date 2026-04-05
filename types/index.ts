@@ -2,7 +2,7 @@ export interface GenreItem {
   title: string;
   genreId: string;
   href: string;
-  samehadakuUrl?: string;
+  samehadakuUrl: string;
 }
 
 export interface AnimeListItem {
@@ -16,7 +16,7 @@ export interface AnimeListItem {
   releaseDate?: string;
   animeId: string;
   href: string;
-  samehadakuUrl?: string;
+  samehadakuUrl: string;
   genreList?: GenreItem[];
 }
 
@@ -42,8 +42,8 @@ export interface AnimeDetail {
     connections: string[];
   };
   genreList: GenreItem[];
-  batchList: { title: string; batchId: string; href: string; samehadakuUrl?: string }[];
-  episodeList: { title: string; episodeNum?: string | number; episodeId: string; href: string; samehadakuUrl?: string }[];
+  batchList: { title: string; batchId: string; href: string; samehadakuUrl: string }[];
+  episodeList: { title: number | string; episodeId: string; href: string; samehadakuUrl: string }[];
 }
 
 export interface ScheduleAnime {
@@ -55,7 +55,7 @@ export interface ScheduleAnime {
   genres: string;
   animeId: string;
   href: string;
-  samehadakuUrl?: string;
+  samehadakuUrl: string;
 }
 
 export interface ScheduleDay {
@@ -99,24 +99,4 @@ export interface HomeData {
   movie: {
     animeList: AnimeListItem[];
   };
-}
-
-export interface SeriesDetail {
-  title: string;
-  poster: string;
-  description: string;
-  genres: string[];
-  status: string;
-  totalEpisodes: number;
-  episodeList: { title: string; episodeId: string; href: string }[];
-}
-
-export interface FilmDetail {
-  title: string;
-  poster: string;
-  description: string;
-  genres: string[];
-  status: string;
-  duration: string;
-  episodeList: { title: string; episodeId: string; href: string }[];
 }

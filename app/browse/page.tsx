@@ -36,7 +36,7 @@ export default async function BrowsePage({ searchParams }: Props) {
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white mb-2">Cari Anime</h1>
         <p className="text-gray-500 text-sm mb-5">
-          Temukan anime favoritmu dari database Winbu
+          Temukan anime favoritmu dari database Samehadaku
         </p>
         <div className="max-w-xl">
           <SearchBar defaultValue={query} />
