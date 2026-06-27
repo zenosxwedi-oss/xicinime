@@ -1,39 +1,30 @@
 name: Deploy to Vercel
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  on:
+    push:
+      branches:
+        - main
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+        - name: Install Vercel CLI
+          run: npm install -g vercel@latest
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy to Vercel (Production)
-        run: |
-          vercel deploy --prod --yes \
-            --token ${{ secrets.VERCEL_TOKEN }} \
-            --scope dariwin81-5963
-        env:
-          VERCEL_ORG_ID: miMruVaTOWl7Yb19IgM6dsYx
-          VERCEL_PROJECT_ID: prj_ivtSzccJfYpPDofR1ZmIqfXnskJH
+        - name: Deploy to Vercel (Production)
+          run: |
+            vercel deploy --prod --yes \
+              --token ${{ secrets.VERCEL_TOKEN }} \
+              --scope dariwin81-5963
+          env:
+            VERCEL_ORG_ID: miMruVaTOWl7Yb19IgM6dsYx
+            VERCEL_PROJECT_ID: prj_ivtSzccJfYpPDofR1ZmIqfXnskJH
+  
