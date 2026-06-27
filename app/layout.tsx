@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import AdDisplay from '@/components/AdDisplay';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 
-const SITE_URL = 'https://xicinime-m5pc.vercel.app';
+const SITE_URL = 'https://xicinime.my.id';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
