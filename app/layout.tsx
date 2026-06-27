@@ -59,6 +59,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
+      <head>
+        {/* HilltopAds verification */}
+        <meta name="0a25db88f7050a28ffed89372d3771d7d0b5676c" content="0a25db88f7050a28ffed89372d3771d7d0b5676c" />
+      </head>
       <body>
         <Navbar />
         <AdDisplay position="top" />
