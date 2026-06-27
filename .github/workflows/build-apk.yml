@@ -30,12 +30,12 @@ name: Build & Release APK
         - name: Set version
           id: version
           run: |
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
               TAG="${{ github.event.inputs.version }}"
             else
               TAG="${GITHUB_REF#refs/tags/}"
             fi
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "tag=${TAG}" >> $GITHUB_OUTPUT
             echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
         - name: Update version in build.gradle
@@ -45,29 +45,24 @@ name: Build & Release APK
             BUILD_NUM="${BUILD_NUM:-1}"
             sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android-app/app/build.gradle
             sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUM/" android-app/app/build.gradle
-            echo "Version set to $VERSION (code: $BUILD_NUM)"
 
-        - name: Generate launcher PNG icons (ImageMagick)
+        - name: Generate launcher PNG icons
           run: |
             sudo apt-get install -y imagemagick -q
-            CONFIGS="mipmap-mdpi:48 mipmap-hdpi:72 mipmap-xhdpi:96 mipmap-xxhdpi:144 mipmap-xxxhdpi:192"
             BASE="android-app/app/src/main/res"
-            for cfg in $CONFIGS; do
-              DNAME=$(echo "$cfg" | cut -d: -f1)
-              SIZE=$(echo "$cfg" | cut -d: -f2)
+            for entry in "mipmap-mdpi:48" "mipmap-hdpi:72" "mipmap-xhdpi:96" "mipmap-xxhdpi:144" "mipmap-xxxhdpi:192"; do
+              DNAME=$(echo "$entry" | cut -d: -f1)
+              SIZE=$(echo "$entry" | cut -d: -f2)
               HALF=$((SIZE/2))
               RADIUS=$((SIZE*38/100))
               DIR="$BASE/$DNAME"
               mkdir -p "$DIR"
-              convert -size "${SIZE}x${SIZE}" xc:'#0d0d14' \
-                -fill '#4f46e5' \
+              convert -size "${SIZE}x${SIZE}" xc:"#0d0d14" \
+                -fill "#4f46e5" \
                 -draw "circle ${HALF},${HALF} ${HALF},$((HALF-RADIUS))" \
-                -fill white \
-                -font DejaVu-Sans-Bold -pointsize $((SIZE/3)) \
-                -gravity Center -annotate 0 "X" \
                 "$DIR/ic_launcher.png"
               cp "$DIR/ic_launcher.png" "$DIR/ic_launcher_round.png"
-              echo "Generated $DNAME/ic_launcher.png (${SIZE}px)"
+              echo "Generated $DNAME (${SIZE}px)"
             done
 
         - name: Generate keystore
@@ -75,12 +70,9 @@ name: Build & Release APK
             keytool -genkey -v \
               -keystore android-app/app/keystore.jks \
               -alias xicinime \
-              -keyalg RSA \
-              -keysize 4096 \
-              -validity 10000 \
-              -dname "CN=XiciNime,OU=Mobile,O=XiciNime,L=Jakarta,S=DKI Jakarta,C=ID" \
-              -storepass xicinime2025 \
-              -keypass xicinime2025
+              -keyalg RSA -keysize 4096 -validity 10000 \
+              -dname "CN=XiciNime,OU=Mobile,O=XiciNime,L=Jakarta,S=DKI,C=ID" \
+              -storepass xicinime2025 -keypass xicinime2025
 
         - name: Set up Gradle
           uses: gradle/actions/setup-gradle@v3
@@ -99,9 +91,8 @@ name: Build & Release APK
               -PKEY_ALIAS=xicinime \
               -PKEY_PASSWORD=xicinime2025
 
-        - name: Rename APK
+        - name: Prepare APK
           run: |
-            TAG="${{ steps.version.outputs.tag }}"
             cp android-app/app/build/outputs/apk/release/app-release.apk XiciNime.apk
             ls -lh XiciNime.apk
 
@@ -111,38 +102,22 @@ name: Build & Release APK
             tag_name: ${{ steps.version.outputs.tag }}
             name: "XiciNime ${{ steps.version.outputs.tag }}"
             body: |
-              ## 📱 XiciNime ${{ steps.version.outputs.tag }}
+              ## XiciNime ${{ steps.version.outputs.tag }}
 
               Aplikasi streaming anime sub indo gratis untuk Android.
 
-              ---
-
-              ### ⬇️ Download
-
+              ### Download
               Klik **XiciNime.apk** di bawah untuk download.
 
-              ---
-
-              ### 📲 Cara Install
-
+              ### Cara Install
               1. Download **XiciNime.apk**
               2. Buka file di HP Android
-              3. Jika muncul peringatan "App tidak dikenal" atau "App mungkin berbahaya":
-                 - Tap **Tetap Install** atau **Install Anyway**
-                 - Aktifkan **Izinkan dari sumber ini** jika diminta
-              4. Tap **Install** → selesai!
+              3. Jika muncul peringatan — tap **Tetap Install** / **Install Anyway**
+              4. Aktifkan **Izinkan dari sumber ini** jika diminta
+              5. Tap **Install**
 
-              > ⚠️ Peringatan ini normal untuk APK di luar Play Store.
-              > APK sudah **ditandatangani digital** dan aman.
-
-              ### Fitur
-              - 🎬 Streaming anime sub indo gratis
-              - 📺 Video player fullscreen
-              - 🔄 Multi-server streaming
-              - 📱 Android 5.0+
+              > Peringatan APK tidak dikenal adalah normal untuk APK di luar Play Store. APK ini sudah ditandatangani digital dan aman.
             files: XiciNime.apk
-            draft: false
-            prerelease: false
             make_latest: true
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
