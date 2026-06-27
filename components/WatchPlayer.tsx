@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Loader2, Monitor, Wifi, Play, Volume2 } from 'lucide-react';
+import VastAdOverlay from './VastAdOverlay';
 
 interface ServerItem {
   label: string;
@@ -30,9 +31,11 @@ export default function WatchPlayer({
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [loadingIdx, setLoadingIdx] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [adDone, setAdDone] = useState(false);
+  const [adKey, setAdKey] = useState(0);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
-  /* ── Wake Lock: cegah layar mati saat nonton ── */
+  /* ── Wake Lock: cegah layar redup/mati saat nonton ── */
   const requestWakeLock = useCallback(async () => {
     try {
       if ('wakeLock' in navigator) {
@@ -56,24 +59,23 @@ export default function WatchPlayer({
 
   useEffect(() => {
     requestWakeLock();
-
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        requestWakeLock();
-      }
+      if (document.visibilityState === 'visible') requestWakeLock();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
       releaseWakeLock();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [requestWakeLock, releaseWakeLock]);
 
+  /* ── Re-trigger ad when server switches ── */
   const switchServer = useCallback(async (serverId: string, idx: number) => {
     if (activeIdx === idx) return;
     setLoadingIdx(idx);
     setIsLoading(true);
+    setAdDone(false);
+    setAdKey((k) => k + 1);
     try {
       const res = await fetch(`/api/server/${serverId}`);
       const data = await res.json() as { url?: string };
@@ -90,16 +92,24 @@ export default function WatchPlayer({
     setIframeSrc(defaultStreamingUrl);
     setActiveIdx(null);
     setIsLoading(true);
+    setAdDone(false);
+    setAdKey((k) => k + 1);
   };
 
   return (
     <div className="flex flex-col gap-0">
       {/* ── Player container ── */}
-      <div className="relative w-full bg-black rounded-t-2xl overflow-hidden shadow-2xl shadow-black/60 border border-white/8"
+      <div
+        className="relative w-full bg-black rounded-t-2xl overflow-hidden shadow-2xl shadow-black/60 border border-white/8"
         style={{ aspectRatio: '16/9' }}
       >
-        {/* Loading overlay */}
-        {isLoading && (
+        {/* VAST 3.0 Pre-roll Ad Overlay */}
+        {!adDone && (
+          <VastAdOverlay key={adKey} onComplete={() => setAdDone(true)} />
+        )}
+
+        {/* Loading overlay (shown after ad, before iframe ready) */}
+        {adDone && isLoading && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0a0a14] gap-3">
             <div className="relative">
               <div className="w-14 h-14 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
@@ -109,19 +119,21 @@ export default function WatchPlayer({
           </div>
         )}
 
+        {/* Main iframe — always mounted but hidden behind ad */}
         <iframe
           key={iframeSrc}
-          src={iframeSrc}
-          className="absolute inset-0 w-full h-full"
+          src={adDone ? iframeSrc : 'about:blank'}
+          className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${adDone ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen; screen-wake-lock"
           referrerPolicy="no-referrer"
           sandbox="allow-scripts allow-same-origin allow-fullscreen allow-forms allow-presentation"
           onLoad={() => setIsLoading(false)}
+          style={{ display: 'block' }}
         />
       </div>
 
-      {/* ── Player footer: info + controls ── */}
+      {/* ── Player footer ── */}
       <div className="bg-[#0f0f1a] border border-t-0 border-white/8 rounded-b-2xl px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs text-gray-400 min-w-0 flex-1">
           <Monitor className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
@@ -168,7 +180,7 @@ export default function WatchPlayer({
                 ? <Loader2 className="w-3 h-3 animate-spin" />
                 : <Play className="w-3 h-3 fill-current opacity-70" />
               }
-              Server {i + 2}
+              {s.label || `Server ${i + 2}`}
             </button>
           ))}
         </div>

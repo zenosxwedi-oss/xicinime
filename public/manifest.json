@@ -1,0 +1,39 @@
+{
+  "name": "xicinime — Nonton Anime Sub Indo",
+  "short_name": "xicinime",
+  "description": "Nonton anime sub indo terbaru, terlengkap, dan tercepat update. Gratis.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d14",
+  "theme_color": "#0d0d14",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "scope": "/",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    {
+      "src": "/icons/icon-192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Anime Terbaru",
+      "url": "/",
+      "description": "Lihat update anime terbaru"
+    },
+    {
+      "name": "Anime Ongoing",
+      "url": "/ongoing",
+      "description": "Anime yang sedang tayang"
+    }
+  ]
+}
