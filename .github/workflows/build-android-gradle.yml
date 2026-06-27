@@ -1,0 +1,212 @@
+name: Build & Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versi APK (contoh: 1.2.0)"
+        required: false
+        default: "1.0.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm install
+
+      - name: Expo Prebuild
+        working-directory: mobile
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Setup signing keystore
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > mobile/android/app/xicinime.keystore
+            echo "KEYSTORE_SOURCE=secret" >> $GITHUB_ENV
+          else
+            keytool -genkeypair \
+              -alias xicinime \
+              -keyalg RSA \
+              -keysize 4096 \
+              -validity 10000 \
+              -keystore mobile/android/app/xicinime.keystore \
+              -storepass "$STORE_PASS" \
+              -keypass "$STORE_PASS" \
+              -dname "CN=XiciNime App,OU=Mobile,O=XiciNime,L=Jakarta,S=DKI Jakarta,C=ID" \
+              -noprompt
+            echo "KEYSTORE_SOURCE=generated" >> $GITHUB_ENV
+          fi
+          echo "Keystore ready ($(stat -c%s mobile/android/app/xicinime.keystore) bytes)"
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'xicinime@Secure2025' }}
+
+      - name: Configure release build
+        run: |
+          GRADLE_FILE="mobile/android/app/build.gradle"
+
+          # Enable ProGuard minification & resource shrinking
+          sed -i 's/minifyEnabled false/minifyEnabled true/g' "$GRADLE_FILE"
+          sed -i 's/shrinkResources false/shrinkResources true/g' "$GRADLE_FILE"
+
+          # ABI splits for smaller APKs
+          if ! grep -q "splits {" "$GRADLE_FILE"; then
+            cat > /tmp/patch_splits.py << 'PYEOF'
+import sys
+content = open(sys.argv[1]).read()
+splits = """
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a", "x86_64"
+            universalApk true
+        }
+    }
+"""
+content = content.replace("    buildTypes {", splits + "    buildTypes {", 1)
+open(sys.argv[1], 'w').write(content)
+print("ABI splits added")
+PYEOF
+            python3 /tmp/patch_splits.py "$GRADLE_FILE"
+          fi
+
+          echo "Build config applied"
+          grep -n "minify\|shrink\|splits" "$GRADLE_FILE" || true
+
+      - name: Tune Gradle JVM
+        run: |
+          {
+            echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError"
+            echo "org.gradle.daemon=false"
+            echo "org.gradle.parallel=true"
+            echo "org.gradle.caching=true"
+            echo "android.useAndroidX=true"
+          } >> mobile/android/gradle.properties
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "VERSION=${{ github.event.inputs.version || '1.0.0' }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Build Release APK
+        working-directory: mobile/android
+        env:
+          STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || 'xicinime@Secure2025' }}
+        run: |
+          chmod +x gradlew
+          KEYSTORE_PATH="$(realpath app/xicinime.keystore)"
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password="$STORE_PASS" \
+            -Pandroid.injected.signing.key.alias=xicinime \
+            -Pandroid.injected.signing.key.password="$STORE_PASS" \
+            --no-daemon \
+            --stacktrace 2>&1 | tail -60
+
+      - name: Collect APKs
+        id: apk
+        run: |
+          APK_DIR="mobile/android/app/build/outputs/apk/release"
+          echo "=== APKs built ==="
+          ls -lh "$APK_DIR/"
+
+          ARM64=$(find "$APK_DIR" -name "*arm64*.apk" | head -1)
+          UNIVERSAL=$(find "$APK_DIR" \( -name "*universal*.apk" -o -name "app-release.apk" \) | head -1)
+
+          if [ -n "$ARM64" ]; then
+            cp "$ARM64" XiciNime.apk
+          elif [ -n "$UNIVERSAL" ]; then
+            cp "$UNIVERSAL" XiciNime.apk
+          else
+            cp "$(find "$APK_DIR" -name "*.apk" | head -1)" XiciNime.apk
+          fi
+
+          if [ -n "$UNIVERSAL" ] && [ "$UNIVERSAL" != "$ARM64" ]; then
+            cp "$UNIVERSAL" XiciNime-universal.apk
+          fi
+
+          ls -lh XiciNime*.apk
+          echo "APK_SIZE=$(du -sh XiciNime.apk | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: "XiciNime v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## 📱 XiciNime v${{ steps.version.outputs.VERSION }}
+
+            Aplikasi streaming anime sub indo gratis.
+
+            ---
+
+            ### ⬇️ Download APK
+
+            | File | Keterangan |
+            |------|-----------|
+            | **XiciNime.apk** | Untuk HP 64-bit (arm64) — **disarankan** |
+            | XiciNime-universal.apk | Untuk semua HP (ukuran lebih besar) |
+
+            Ukuran APK: **${{ steps.apk.outputs.APK_SIZE }}**
+
+            ---
+
+            ### 📲 Cara Install
+
+            1. Download **XiciNime.apk**
+            2. Buka file di HP Android
+            3. Jika muncul peringatan "App tidak dikenal":
+               - Tap **Pengaturan** → aktifkan **Izinkan dari sumber ini**
+               - Kembali dan tap **Install**
+            4. Selesai — buka aplikasi XiciNime
+
+            > ⚠️ Peringatan "App mungkin berbahaya" adalah **normal** untuk APK di luar Play Store.
+            > APK ini sudah **ditandatangani secara digital** dan aman digunakan.
+          files: |
+            XiciNime.apk
+            XiciNime-universal.apk
+          make_latest: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

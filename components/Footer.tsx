@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Smartphone, Tv } from 'lucide-react';
 
-const APK_URL = 'https://github.com/kuma379/xicinime/releases/latest/download/XiciNime.apk';
+const APK_URL = 'https://github.com/zenosxwedi-oss/xicinime/releases/latest/download/XiciNime.apk';
 
 export default function Footer() {
   return (
