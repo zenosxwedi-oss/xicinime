@@ -1,151 +1,149 @@
 name: Build & Release APK
 
-on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag (e.g. v1.0.1)'
-        required: true
-        default: 'v1.0.0'
+  on:
+    push:
+      tags:
+        - 'v*'
+    workflow_dispatch:
+      inputs:
+        version:
+          description: 'Version tag (e.g. v1.0.1)'
+          required: true
+          default: 'v1.0.0'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+  permissions:
+    contents: write
 
-    steps:
-      - uses: actions/checkout@v4
+  jobs:
+    build:
+      runs-on: ubuntu-latest
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Set version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
+        - name: Set up JDK 17
+          uses: actions/setup-java@v4
+          with:
+            java-version: '17'
+            distribution: 'temurin'
 
-      - name: Update version in build.gradle
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          VERSION="${TAG#v}"
-          BUILD_NUM=$(echo "$VERSION" | tr -d '.' | sed 's/^0*//')
-          BUILD_NUM="${BUILD_NUM:-1}"
-          sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android-app/app/build.gradle
-          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUM/" android-app/app/build.gradle
+        - name: Set version
+          id: version
+          run: |
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              TAG="${{ github.event.inputs.version }}"
+            else
+              TAG="${GITHUB_REF#refs/tags/}"
+            fi
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
-      - name: Generate launcher PNG icons
-        run: |
-          python3 - <<'PYEOF'
-          import os, struct, zlib, base64
+        - name: Update version in build.gradle
+          run: |
+            VERSION="${{ steps.version.outputs.version }}"
+            BUILD_NUM=$(echo "$VERSION" | tr -d '.' | sed 's/^0*//')
+            BUILD_NUM="${BUILD_NUM:-1}"
+            sed -i "s/versionName \".*\"/versionName \"$VERSION\"/" android-app/app/build.gradle
+            sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUM/" android-app/app/build.gradle
+            echo "Version set to $VERSION (code: $BUILD_NUM)"
 
-          def make_png(size, bg=(13,13,20), fg=(255,77,208)):
-              img = []
-              cx, cy, r = size//2, size//2, int(size*0.38)
-              for y in range(size):
-                  row = []
-                  for x in range(size):
-                      dx, dy = x-cx, y-cy
-                      if dx*dx + dy*dy <= r*r:
-                          row += list(fg) + [255]
-                      else:
-                          row += list(bg) + [255]
-                  img.append(bytes([0]) + bytes(row))
-              raw = b''.join(img)
-              def chunk(name, data):
-                  c = name + data
-                  return struct.pack('>I', len(data)) + c + struct.pack('>I', zlib.crc32(c) & 0xffffffff)
-              ihdr = struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0)
-              return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+        - name: Generate launcher PNG icons (ImageMagick)
+          run: |
+            sudo apt-get install -y imagemagick -q
+            CONFIGS="mipmap-mdpi:48 mipmap-hdpi:72 mipmap-xhdpi:96 mipmap-xxhdpi:144 mipmap-xxxhdpi:192"
+            BASE="android-app/app/src/main/res"
+            for cfg in $CONFIGS; do
+              DNAME=$(echo "$cfg" | cut -d: -f1)
+              SIZE=$(echo "$cfg" | cut -d: -f2)
+              HALF=$((SIZE/2))
+              RADIUS=$((SIZE*38/100))
+              DIR="$BASE/$DNAME"
+              mkdir -p "$DIR"
+              convert -size "${SIZE}x${SIZE}" xc:'#0d0d14' \
+                -fill '#4f46e5' \
+                -draw "circle ${HALF},${HALF} ${HALF},$((HALF-RADIUS))" \
+                -fill white \
+                -font DejaVu-Sans-Bold -pointsize $((SIZE/3)) \
+                -gravity Center -annotate 0 "X" \
+                "$DIR/ic_launcher.png"
+              cp "$DIR/ic_launcher.png" "$DIR/ic_launcher_round.png"
+              echo "Generated $DNAME/ic_launcher.png (${SIZE}px)"
+            done
 
-          configs = [
-              ('mipmap-mdpi',    48),
-              ('mipmap-hdpi',    72),
-              ('mipmap-xhdpi',   96),
-              ('mipmap-xxhdpi',  144),
-              ('mipmap-xxxhdpi', 192),
-          ]
-          base = 'android-app/app/src/main/res'
-          for dname, sz in configs:
-              path = os.path.join(base, dname)
-              os.makedirs(path, exist_ok=True)
-              data = make_png(sz)
-              open(os.path.join(path, 'ic_launcher.png'), 'wb').write(data)
-              open(os.path.join(path, 'ic_launcher_round.png'), 'wb').write(data)
-              print(f'Generated {dname}/ic_launcher.png ({sz}px)')
-          PYEOF
+        - name: Generate keystore
+          run: |
+            keytool -genkey -v \
+              -keystore android-app/app/keystore.jks \
+              -alias xicinime \
+              -keyalg RSA \
+              -keysize 4096 \
+              -validity 10000 \
+              -dname "CN=XiciNime,OU=Mobile,O=XiciNime,L=Jakarta,S=DKI Jakarta,C=ID" \
+              -storepass xicinime2025 \
+              -keypass xicinime2025
 
-      - name: Generate keystore
-        run: |
-          keytool -genkey -v \
-            -keystore android-app/app/keystore.jks \
-            -alias xicinime \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=XiciNime, OU=App, O=XiciNime, L=Jakarta, S=DKI Jakarta, C=ID" \
-            -storepass xicinime2024 \
-            -keypass xicinime2024
+        - name: Set up Gradle
+          uses: gradle/actions/setup-gradle@v3
+          with:
+            gradle-version: '8.5'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.5'
+        - name: Create local.properties
+          run: echo "sdk.dir=$ANDROID_SDK_ROOT" > android-app/local.properties
 
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > android-app/local.properties
+        - name: Build Release APK
+          working-directory: android-app
+          run: |
+            gradle assembleRelease \
+              -PKEYSTORE_PATH=keystore.jks \
+              -PKEYSTORE_PASSWORD=xicinime2025 \
+              -PKEY_ALIAS=xicinime \
+              -PKEY_PASSWORD=xicinime2025
 
-      - name: Build Release APK
-        working-directory: android-app
-        run: |
-          gradle assembleRelease \
-            -PKEYSTORE_PATH=keystore.jks \
-            -PKEYSTORE_PASSWORD=xicinime2024 \
-            -PKEY_ALIAS=xicinime \
-            -PKEY_PASSWORD=xicinime2024
+        - name: Rename APK
+          run: |
+            TAG="${{ steps.version.outputs.tag }}"
+            cp android-app/app/build/outputs/apk/release/app-release.apk XiciNime.apk
+            ls -lh XiciNime.apk
 
-      - name: Rename APK files
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          cp android-app/app/build/outputs/apk/release/app-release.apk \
-             XiciNime.apk
-          cp android-app/app/build/outputs/apk/release/app-release.apk \
-             "XiciNime-${TAG}.apk"
+        - name: Create GitHub Release
+          uses: softprops/action-gh-release@v2
+          with:
+            tag_name: ${{ steps.version.outputs.tag }}
+            name: "XiciNime ${{ steps.version.outputs.tag }}"
+            body: |
+              ## 📱 XiciNime ${{ steps.version.outputs.tag }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: "XiciNime ${{ steps.version.outputs.tag }}"
-          body: |
-            ## XiciNime ${{ steps.version.outputs.tag }}
+              Aplikasi streaming anime sub indo gratis untuk Android.
 
-            Aplikasi Android XiciNime — nonton anime sub indo gratis langsung dari HP.
+              ---
 
-            ### Cara Install
-            1. Download file **XiciNime.apk** di bawah
-            2. Buka file APK — izinkan "Install from unknown sources" jika diminta
-            3. Selesai! Buka XiciNime dan nikmati anime
+              ### ⬇️ Download
 
-            ### Fitur
-            - 🎬 Streaming anime sub indo gratis
-            - 📺 Video player fullscreen dengan Wake Lock (layar tidak redup)
-            - 🔄 Tarik untuk refresh
-            - 📱 Support Android 5.0+
+              Klik **XiciNime.apk** di bawah untuk download.
 
-            > Built automatically via GitHub Actions
-          files: |
-            XiciNime.apk
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              ---
+
+              ### 📲 Cara Install
+
+              1. Download **XiciNime.apk**
+              2. Buka file di HP Android
+              3. Jika muncul peringatan "App tidak dikenal" atau "App mungkin berbahaya":
+                 - Tap **Tetap Install** atau **Install Anyway**
+                 - Aktifkan **Izinkan dari sumber ini** jika diminta
+              4. Tap **Install** → selesai!
+
+              > ⚠️ Peringatan ini normal untuk APK di luar Play Store.
+              > APK sudah **ditandatangani digital** dan aman.
+
+              ### Fitur
+              - 🎬 Streaming anime sub indo gratis
+              - 📺 Video player fullscreen
+              - 🔄 Multi-server streaming
+              - 📱 Android 5.0+
+            files: XiciNime.apk
+            draft: false
+            prerelease: false
+            make_latest: true
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
