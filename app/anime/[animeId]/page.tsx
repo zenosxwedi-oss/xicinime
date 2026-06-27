@@ -152,7 +152,7 @@ export default async function AnimeDetailPage({ params }: Props) {
                 <Link key={ep.episodeId} href={`/watch/${ep.episodeId}`}
                   className="group flex items-center justify-center gap-1.5 bg-[#111118] hover:bg-indigo-600 border border-white/5 hover:border-indigo-500 rounded-xl py-3 px-2 text-xs font-semibold text-gray-300 hover:text-white transition-all">
                   <PlayCircle className="w-3 h-3 opacity-60 group-hover:opacity-100" />
-                  {ep.episodeNum ?? ep.title.replace(/[^0-9]/g,'') || ep.title.slice(0,8)}
+                  {ep.episodeNum ?? (ep.title.replace(/[^0-9]/g, '') || ep.title.slice(0, 8))}
                 </Link>
               ))}
             </div>
