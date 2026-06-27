@@ -1,17 +1,11 @@
-import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
+import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import AdDisplay from '@/components/AdDisplay';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
-import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
+import Script from 'next/script';
 
 const SITE_URL = 'https://xicinime.my.id';
-
-export const viewport: Viewport = {
-  themeColor: '#0d0d14',
-};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,12 +23,6 @@ export const metadata: Metadata = {
   authors: [{ name: 'xicinime' }],
   creator: 'xicinime',
   publisher: 'xicinime',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    title: 'xicinime',
-    statusBarStyle: 'black-translucent',
-  },
   robots: {
     index: true,
     follow: true,
@@ -72,39 +60,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id">
       <head>
         <meta name="0a25db88f7050a28ffed89372d3771d7d0b5676c" content="0a25db88f7050a28ffed89372d3771d7d0b5676c" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body>
         <Navbar />
-        <AdDisplay position="top" />
         <main className="min-h-screen">{children}</main>
-        <AdDisplay position="bottom" />
         <Footer />
         <WhatsAppFloat />
-        <ServiceWorkerRegister />
-
-        {/* Existing network ad */}
+        {/* HilltopAds */}
         <Script
-          src="https://pl29055089.profitablecpmratenetwork.com/2e/de/ac/2edeac352603c4d21dc2ee2bac6c381b.js"
-          strategy="lazyOnload"
+          id="hilltopads-main"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(ehcko){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = ehcko || {};
+s.src = "//shameful-farm.com/bZXlVjs.d/GUlX0uYHWucr/keWmD9-uUZwUmlWkbP/T_cTxpNLzcMP3yOmTZclt/N/z/E/3/MNzTgdw/MZQX";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})`,
+          }}
         />
-
-        {/* Corner video ad — pojok kanan bawah */}
-        <Script id="corner-video-ad" strategy="lazyOnload">{`
-          (function(ehcko){
-            var d = document,
-                s = d.createElement('script'),
-                l = d.scripts[d.scripts.length - 1];
-            s.settings = ehcko || {};
-            s.src = "//shameful-farm.com/bZXlVjs.d/GUlX0uYHWucr/keWmD9-uUZwUmlWkbP/T_cTxpNLzcMP3yOmTZclt/N/z/E/3/MNzTgdw/MZQX";
-            s.async = true;
-            s.referrerPolicy = 'no-referrer-when-downgrade';
-            l.parentNode.insertBefore(s, l);
-          })({})
-        `}</Script>
       </body>
     </html>
   );

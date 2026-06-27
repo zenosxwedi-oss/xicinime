@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { Tv, Github } from 'lucide-react';
+import { Smartphone, Tv } from 'lucide-react';
+
+const APK_URL = 'https://github.com/kuma379/xicinime/releases/latest/download/XiciNime.apk';
 
 export default function Footer() {
   return (
@@ -40,13 +42,37 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Download App Banner */}
+        <div className="border-t border-white/5 pt-8 pb-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-indigo-950/40 border border-indigo-500/20 rounded-xl px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                <Smartphone className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">Download Aplikasi Android</p>
+                <p className="text-xs text-gray-400">Nonton anime lebih nyaman di HP kamu</p>
+              </div>
+            </div>
+            <a
+              href={APK_URL}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-lg shrink-0"
+            >
+              <Smartphone className="w-4 h-4" />
+              Download APK
+            </a>
+          </div>
+        </div>
+
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-gray-600">
             © {new Date().getFullYear()} xicinime. Semua konten adalah milik pemilik aslinya.
           </p>
-          <p className="text-xs text-gray-600">
-            Dibuat untuk penggemar anime Indonesia 🇮🇩
-          </p>
+          <nav className="flex items-center gap-4">
+            <Link href="/about" className="text-xs text-gray-500 hover:text-indigo-400 transition-colors">Tentang & Kontak</Link>
+            <Link href="/privacy-policy" className="text-xs text-gray-500 hover:text-indigo-400 transition-colors">Kebijakan Privasi</Link>
+            <Link href="/terms-of-service" className="text-xs text-gray-500 hover:text-indigo-400 transition-colors">Syarat & Ketentuan</Link>
+          </nav>
         </div>
       </div>
     </footer>
