@@ -1,30 +1,30 @@
 name: Deploy to Vercel
 
-on:
-  push:
-    branches:
-      - main
+  on:
+    push:
+      branches:
+        - main
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
 
-      - name: Deploy to Vercel
-        run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://api.vercel.com/v13/deployments" \
-            -d "{
-              \"name\": \"xicinime-m5pc\",
-              \"project\": \"${{ secrets.VERCEL_PROJECT_ID }}\",
-              \"target\": \"production\",
-              \"gitSource\": {
-                \"type\": \"github\",
-                \"repoId\": 1200601286,
-                \"ref\": \"main\",
-                \"sha\": \"${{ github.sha }}\"
-              }
-            }" | jq -r '.url // .error.message'
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+
+        - name: Install Vercel CLI
+          run: npm install -g vercel@latest
+
+        - name: Deploy to Vercel (Production)
+          run: |
+            vercel deploy --prod --yes \
+              --token ${{ secrets.VERCEL_TOKEN }} \
+              --scope dariwin81-5963
+          env:
+            VERCEL_ORG_ID: miMruVaTOWl7Yb19IgM6dsYx
+            VERCEL_PROJECT_ID: prj_ivtSzccJfYpPDofR1ZmIqfXnskJH
+  
