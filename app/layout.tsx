@@ -66,7 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="min-h-screen">{children}</main>
         <Footer />
         <WhatsAppFloat />
-        {/* HilltopAds */}
+
+        {/* HilltopAds — main popunder script */}
         <Script
           id="hilltopads-main"
           strategy="afterInteractive"
@@ -77,6 +78,24 @@ var d = document,
     l = d.scripts[d.scripts.length - 1];
 s.settings = ehcko || {};
 s.src = "//shameful-farm.com/bZXlVjs.d/GUlX0uYHWucr/keWmD9-uUZwUmlWkbP/T_cTxpNLzcMP3yOmTZclt/N/z/E/3/MNzTgdw/MZQX";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})`,
+          }}
+        />
+
+        {/* HilltopAds — MultiTag Banner (desktop 300x250 + mobile 300x100) */}
+        <Script
+          id="hilltopads-multitag"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(fyf){
+var d = document,
+    s = d.createElement('script'),
+    l = d.scripts[d.scripts.length - 1];
+s.settings = fyf || {};
+s.src = "//shameful-farm.com/bgX.V/sidVGfl-0OYJWhcN/Ke/mp9/uXZtUhlokLPYTfc/x/NazQQgy/MgDPECtrNIz/Eo3CNVDDIYwYNMQI";
 s.async = true;
 s.referrerPolicy = 'no-referrer-when-downgrade';
 l.parentNode.insertBefore(s, l);
