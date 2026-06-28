@@ -32,16 +32,16 @@ short-form companion; this file is the canonical brief.
   non-priority requests. Pass `{ priority: true }` for episode/server
   endpoints to skip the queue. Pass `{ signal }` to support cancellation.
 - `src/contexts/ThemeContext.jsx` — single source of truth for theme. Stores
-  `funknime-theme` in localStorage; valid values are `dark | minimal |
+  `xicinime-theme` in localStorage; valid values are `dark | minimal |
   neobrutalism`. The DOM attribute is `data-theme` on `<html>`. There used to
   be a competing `theme` key — don't reintroduce it.
 - `src/utils/watchHistory.js` — localStorage progress store. Migrates an old
-  `funknime_watch_history` key on read. Capped at `MAX_ITEMS = 100`.
+  `xicinime_watch_history` key on read. Capped at `MAX_ITEMS = 100`.
 - `src/utils/animeUtils.js` — `normalizeKey` + `mergeAnimeLists`. Use this
   when merging Otakudesu + Samehadaku results. Do not re-implement inline
   (it used to be duplicated 5 times).
 - `api/trakteer.js` — Vercel serverless proxy for the Trakteer public API.
-  Reads `TRAKTEER_API_KEY` from env. CORS is restricted to mrfunk.my.id
+  Reads `TRAKTEER_API_KEY` from env. CORS is restricted to xicinime.my.id
   (with localhost added in non-prod). Keep input validation in place.
 
 ## External services
@@ -50,7 +50,7 @@ short-form companion; this file is the canonical brief.
   in-app limiter targets 40 to stay clear of 429.
 - Trakteer: `https://api.trakteer.id/v1/public`. Never call directly from
   the client — go through `/api/trakteer`. The API key must stay server-side.
-- Live site: `https://www.mrfunk.my.id` (canonical www host; non-www 307s).
+- Live site: `https://www.xicinime.my.id` (canonical www host; non-www 307s).
 
 ## Commands
 

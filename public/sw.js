@@ -1,9 +1,9 @@
-// Service Worker for Funknime PWA
+// Service Worker for Xicinime PWA
 // IMPORTANT: bump CACHE_VERSION on every release. Both the precache and the
 // runtime cache key derive from it, so old caches are wiped on activation.
 const CACHE_VERSION = 'v3';
-const CACHE_NAME = `funknime-${CACHE_VERSION}`;
-const RUNTIME_CACHE = `funknime-runtime-${CACHE_VERSION}`;
+const CACHE_NAME = `xicinime-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `xicinime-runtime-${CACHE_VERSION}`;
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
