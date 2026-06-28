@@ -1,63 +1,103 @@
-const CACHE_NAME = 'xicinime-v1';
-const STATIC_ASSETS = [
+// Service Worker for Funknime PWA
+// IMPORTANT: bump CACHE_VERSION on every release. Both the precache and the
+// runtime cache key derive from it, so old caches are wiped on activation.
+const CACHE_VERSION = 'v3';
+const CACHE_NAME = `funknime-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `funknime-runtime-${CACHE_VERSION}`;
+
+// Assets to cache on install
+const PRECACHE_ASSETS = [
   '/',
+  '/index.html',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/favicon.svg',
 ];
 
+// Install — cache shell, then take over immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).catch(() => {})
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
+// Activate — purge any cache that doesn't match the current version
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// Helpers
+const isStaticExt = (pathname) =>
+  /\.(js|mjs|css|png|jpg|jpeg|svg|gif|webp|woff2?)$/i.test(pathname);
+
+// Fetch — strategy depends on request type:
+// - navigation HTML → network-first (so users see new releases ASAP)
+// - hashed assets   → cache-first (immutable URLs are safe to cache forever)
+// - other GET       → cache-first with background revalidate
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
 
-  /* Never cache API calls or external streaming URLs */
+  // Skip cross-origin requests
+  if (url.origin !== location.origin) return;
+
+  // NEVER cache API endpoints or sitemap/robots — they must hit network fresh
   if (
     url.pathname.startsWith('/api/') ||
-    url.origin !== self.location.origin ||
-    request.method !== 'GET'
+    url.pathname === '/sitemap.xml' ||
+    url.pathname === '/robots.txt'
   ) {
     return;
   }
 
-  /* Network-first for HTML pages */
-  if (request.headers.get('accept')?.includes('text/html')) {
+  // Navigation requests — network-first, fall back to cached shell
+  if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          // Update cached shell so offline users get latest snapshot
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          }
           return res;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
 
-  /* Cache-first for static assets */
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-        return res;
-      });
-    })
-  );
+  // Static assets — cache-first with background update
+  if (isStaticExt(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const fetchAndUpdate = fetch(request)
+          .then((res) => {
+            if (res && res.ok && res.status === 200) {
+              const copy = res.clone();
+              caches.open(RUNTIME_CACHE).then((cache) => {
+                // Hashed assets are safe to keep; non-hashed also fine because
+                // we drop the whole runtime cache on every version bump.
+                cache.put(request, copy);
+              });
+            }
+            return res;
+          })
+          .catch(() => cached);
+
+        return cached || fetchAndUpdate;
+      })
+    );
+  }
 });
