@@ -1,39 +1,67 @@
 {
-  "name": "xicinime — Nonton Anime Sub Indo",
-  "short_name": "xicinime",
-  "description": "Nonton anime sub indo terbaru, terlengkap, dan tercepat update. Gratis.",
+  "name": "Xicinime - Streaming Anime Sub Indo",
+  "short_name": "Xicinime",
+  "description": "Situs streaming anime & donghua sub Indo gratis terlengkap. Ribuan judul, update setiap hari.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d14",
-  "theme_color": "#0d0d14",
-  "orientation": "portrait-primary",
-  "lang": "id",
+  "background_color": "#0A0A0F",
+  "theme_color": "#9333EA",
+  "orientation": "any",
   "scope": "/",
-  "categories": ["entertainment", "video"],
+  "id": "/",
   "icons": [
     {
-      "src": "/icons/icon-192",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
     },
     {
-      "src": "/icons/icon-512",
+      "src": "/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
+  "categories": ["entertainment", "video"],
   "shortcuts": [
     {
-      "name": "Anime Terbaru",
-      "url": "/",
-      "description": "Lihat update anime terbaru"
+      "name": "Cari Anime",
+      "short_name": "Cari",
+      "url": "/search"
     },
     {
       "name": "Anime Ongoing",
-      "url": "/ongoing",
-      "description": "Anime yang sedang tayang"
+      "short_name": "Ongoing",
+      "url": "/ongoing"
+    },
+    {
+      "name": "Riwayat Tonton",
+      "short_name": "Riwayat",
+      "url": "/history"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }
