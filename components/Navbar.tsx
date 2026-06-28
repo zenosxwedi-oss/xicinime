@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Menu, X, Search, Tv, ChevronDown } from 'lucide-react';
+import { Menu, X, Search, Tv, Download } from 'lucide-react';
 import SearchBar from './SearchBar';
 
 const navLinks = [
@@ -77,6 +77,15 @@ export default function Navbar() {
               <SearchBar />
             </div>
 
+            {/* Download App button */}
+            <Link
+              href="/download"
+              className="hidden sm:inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shadow-lg shadow-indigo-900/40"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download App
+            </Link>
+
             {/* Mobile search toggle */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -125,6 +134,13 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            <Link
+              href="/download"
+              className="col-span-2 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mt-1"
+            >
+              <Download className="w-4 h-4" />
+              Download Aplikasi Android
+            </Link>
           </nav>
         </div>
       )}
