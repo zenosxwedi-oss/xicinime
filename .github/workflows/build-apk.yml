@@ -43,28 +43,36 @@ jobs:
         env:
           CI: "1"
 
-      - name: Patch build.gradle — add Kotlin skip-metadata-version-check
+      - name: Patch build.gradle - add Kotlin freeCompilerArgs for play-services-ads compat
         working-directory: mobile/android
         run: |
-          echo "=== Showing root build.gradle structure ==="
+          echo "=== Current root build.gradle ==="
           cat build.gradle
           echo ""
-          echo "=== Appending Kotlin freeCompilerArgs subprojects block ==="
-          cat >> build.gradle << 'GROOVYEOF'
-
-// --- CI patch: skip Kotlin metadata version check for play-services-ads 25.4+ ---
-subprojects {
-    afterEvaluate { proj ->
-        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { t ->
-            t.kotlinOptions {
-                freeCompilerArgs += ['-Xskip-metadata-version-check']
-            }
-        }
-    }
-}
-GROOVYEOF
-          echo "=== Patch applied. Last 20 lines of build.gradle ==="
-          tail -20 build.gradle
+          echo "=== Applying Kotlin skip-metadata-version-check patch ==="
+          node << 'JSEOF'
+          const fs = require('fs');
+          const existing = fs.readFileSync('build.gradle', 'utf8');
+          console.log('build.gradle length:', existing.length);
+          const patch = [
+            '',
+            '// CI fix: skip Kotlin metadata version check for play-services-ads 25.4+ compatibility',
+            'subprojects {',
+            '    afterEvaluate { proj ->',
+            '        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { t ->',
+            '            t.kotlinOptions {',
+            "                freeCompilerArgs += ['-Xskip-metadata-version-check']",
+            '            }',
+            '        }',
+            '    }',
+            '}',
+            '',
+          ].join('\n');
+          fs.appendFileSync('build.gradle', patch);
+          console.log('Patch appended successfully');
+          JSEOF
+          echo "=== Last 15 lines of patched build.gradle ==="
+          tail -15 build.gradle
 
       - name: Decode & place release keystore
         run: |
@@ -90,13 +98,12 @@ GROOVYEOF
                   else if (content[i] === '}') { depth--; if (depth === 0) { i++; break; } }
                   i++;
                 }
-                const releaseBlock = `
-              release {
-                  storeFile file('release.keystore')
-                  storePassword System.getenv('ANDROID_STORE_PASSWORD') ?: ''
-                  keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''
-                  keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''
-              }`;
+                const releaseBlock = '\n              release {\n' +
+                  "                  storeFile file('release.keystore')\n" +
+                  "                  storePassword System.getenv('ANDROID_STORE_PASSWORD') ?: ''\n" +
+                  "                  keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''\n" +
+                  "                  keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''\n" +
+                  '              }';
                 content = content.slice(0, i) + releaseBlock + content.slice(i);
                 console.log('Inserted release signingConfig block');
               }
@@ -136,7 +143,7 @@ GROOVYEOF
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v2
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v3
           restore-keys: gradle-
 
       - name: Build Release APK
@@ -162,30 +169,30 @@ GROOVYEOF
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "size_mb=${SIZE_MB}" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release & Upload APK
+      - name: Create GitHub Release and Upload APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.apk.outputs.version }}
           name: "XiciNime ${{ steps.apk.outputs.version }}"
           body: |
-            ## 📱 XiciNime ${{ steps.apk.outputs.version }} — Android APK
+            ## XiciNime ${{ steps.apk.outputs.version }} - Android APK
 
             **Ukuran:** ~${{ steps.apk.outputs.size_mb }} MB
 
-            ### ⬇️ Download
+            ### Download
             Klik file `.apk` di bawah untuk download langsung.
 
-            ### 📋 Cara Install
+            ### Cara Install
             1. Download file APK di bawah
-            2. Buka file manager → tap file APK
-            3. Jika muncul "Sumber tidak dikenal" → aktifkan izin
-            4. Tap Install → buka Xicinime 🎉
+            2. Buka file manager - tap file APK
+            3. Jika muncul "Sumber tidak dikenal" - aktifkan izin
+            4. Tap Install - buka Xicinime
 
-            > ⚠️ Peringatan Google Play Protect adalah **normal** untuk semua APK luar Play Store.
-            > Tap **"Tetap Install"** untuk melanjutkan.
+            > Peringatan Google Play Protect adalah normal untuk semua APK luar Play Store.
+            > Tap "Tetap Install" untuk melanjutkan.
 
             ---
-            Built automatically dari branch `main` via GitHub Actions.
+            Built automatically dari branch main via GitHub Actions.
           files: ${{ steps.apk.outputs.apk_path }}
           draft: false
           prerelease: false
