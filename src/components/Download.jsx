@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const APK_URL = 'https://xicinime.my.id/xicinime.apk';
-const APK_SIZE = '~25 MB';
-const APP_VERSION = '1.0.0';
+const GITHUB_REPO = 'zenosxwedi-oss/xicinime';
+const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 
 const FeatureItem = ({ icon, title, desc }) => (
   <div style={{
@@ -30,13 +29,51 @@ const StepItem = ({ num, text }) => (
   </div>
 );
 
+function formatBytes(bytes) {
+  if (!bytes) return '~30 MB';
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
+}
+
 const Download = () => {
+  const [release, setRelease] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [buildStatus, setBuildStatus] = useState(null);
+
+  useEffect(() => {
+    fetch(RELEASES_API)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.assets) {
+          const apk = data.assets.find(a => a.name.endsWith('.apk'));
+          if (apk) {
+            setRelease({
+              version: data.tag_name || 'v1.0',
+              url: apk.browser_download_url,
+              size: formatBytes(apk.size),
+              date: new Date(apk.updated_at || data.published_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }),
+              name: apk.name,
+            });
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback if GitHub API fails
+        setRelease({
+          version: 'v1.0',
+          url: `https://github.com/${GITHUB_REPO}/releases/latest/download/xicinime.apk`,
+          size: '~30 MB',
+          date: null,
+          name: 'xicinime.apk',
+        });
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleDownload = () => {
+    if (!release?.url) return;
     setDownloading(true);
-    window.open(APK_URL, '_blank');
+    window.open(release.url, '_blank');
     setTimeout(() => setDownloading(false), 3000);
   };
 
@@ -49,10 +86,15 @@ const Download = () => {
         <h1 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '8px', background: 'linear-gradient(135deg,#9333ea,#c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Xicinime App
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '6px' }}>
-          Versi {APP_VERSION} • Android • {APK_SIZE}
-        </p>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+        {loading ? (
+          <div style={{ color: 'var(--color-text-dim)', fontSize: '0.88rem' }}>Mengecek versi terbaru...</div>
+        ) : release ? (
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '6px' }}>
+            {release.version} · Android · {release.size}
+            {release.date && <span> · {release.date}</span>}
+          </p>
+        ) : null}
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.82rem', marginTop: '6px' }}>
           Nonton anime sub indo gratis, lebih nyaman tanpa buka browser
         </p>
       </div>
@@ -61,24 +103,36 @@ const Download = () => {
       <div style={{ textAlign: 'center', marginBottom: '36px' }}>
         <button
           onClick={handleDownload}
-          disabled={downloading}
+          disabled={downloading || loading || !release}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '10px',
-            background: downloading ? 'var(--color-surface)' : 'linear-gradient(135deg,#7c3aed,#9333ea)',
+            background: (downloading || loading || !release) ? 'var(--color-surface)' : 'linear-gradient(135deg,#7c3aed,#9333ea)',
             color: '#fff', border: 'none', borderRadius: '14px',
             padding: '16px 36px', fontSize: '1.05rem', fontWeight: 800,
-            cursor: downloading ? 'not-allowed' : 'pointer',
+            cursor: (downloading || loading || !release) ? 'not-allowed' : 'pointer',
             boxShadow: '0 4px 20px rgba(147,51,234,0.4)',
             transition: 'all 0.2s', letterSpacing: '0.3px',
           }}
         >
           <span style={{ fontSize: '1.3rem' }}>
-            {downloading ? '⏳' : '⬇️'}
+            {loading ? '⏳' : downloading ? '⏳' : '⬇️'}
           </span>
-          {downloading ? 'Mengunduh...' : 'Download APK Android'}
+          {loading ? 'Mengecek...' : downloading ? 'Mengunduh...' : 'Download APK Android'}
         </button>
         <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--color-text-dim)' }}>
-          Ukuran: {APK_SIZE} • Gratis • Tanpa iklan berlebihan
+          {release ? `${release.size} • ` : ''}Gratis • Tanpa berlangganan
+        </div>
+
+        {/* Direct GitHub link */}
+        <div style={{ marginTop: '8px' }}>
+          <a
+            href={`https://github.com/${GITHUB_REPO}/releases/latest`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'underline' }}
+          >
+            Lihat semua versi di GitHub Releases →
+          </a>
         </div>
       </div>
 
@@ -87,23 +141,23 @@ const Download = () => {
         <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>📋 Cara Install</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <StepItem num="1" text='Download APK dengan tombol di atas' />
-          <StepItem num="2" text='Buka file manager → cari file "xicinime.apk" di folder Downloads' />
-          <StepItem num="3" text='Tap file APK → jika muncul peringatan "Sumber tidak dikenal", tap Pengaturan → aktifkan "Izinkan dari sumber ini"' />
+          <StepItem num="2" text='Buka file manager → cari file .apk di folder Downloads' />
+          <StepItem num="3" text='Tap file APK → jika muncul "Sumber tidak dikenal", buka Pengaturan → aktifkan izin' />
           <StepItem num="4" text='Tap Install → tunggu selesai → buka aplikasi Xicinime 🎉' />
         </div>
       </div>
 
-      {/* Warning explanation */}
+      {/* Play Protect warning */}
       <div style={{ marginBottom: '32px', background: 'rgba(245,158,11,0.08)', borderRadius: '14px', padding: '16px 20px', border: '1px solid rgba(245,158,11,0.3)' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <span style={{ fontSize: '1.3rem' }}>⚠️</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '6px', color: '#f59e0b' }}>
-              Peringatan "File Berbahaya" dari Android
+              Peringatan Google Play Protect
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-              Peringatan ini <strong>normal</strong> dan muncul untuk <strong>semua APK</strong> yang diinstall di luar Google Play Store — bukan berarti aplikasinya berbahaya.
-              Kamu bisa tetap install dengan aman. Jika muncul Google Play Protect, tap <strong>"Tetap Install"</strong> atau <strong>"Install Anyway"</strong>.
+              Peringatan ini <strong>normal</strong> untuk semua APK di luar Play Store — bukan berarti berbahaya.
+              Tap <strong>"Tetap Install"</strong> atau <strong>"Install Anyway"</strong> untuk melanjutkan.
             </div>
           </div>
         </div>
@@ -112,12 +166,12 @@ const Download = () => {
       {/* Features */}
       <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px' }}>✨ Fitur Aplikasi</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '32px' }}>
-        <FeatureItem icon="🎬" title="Streaming Anime" desc="Nonton anime sub indo dari berbagai sumber — Otakudesu, Samehadaku, dan lainnya" />
+        <FeatureItem icon="🎬" title="Streaming Anime" desc="Nonton anime sub indo dari Otakudesu, Samehadaku, dan lainnya" />
         <FeatureItem icon="🔍" title="Pencarian Cepat" desc="Cari ribuan judul anime dengan hasil instan" />
         <FeatureItem icon="🕐" title="Riwayat Nonton" desc="Lanjut nonton dari episode yang tersimpan otomatis" />
         <FeatureItem icon="📶" title="Tanpa Login" desc="Langsung nonton tanpa perlu daftar akun" />
-        <FeatureItem icon="🌙" title="Dark Mode" desc="Tema gelap yang nyaman di mata saat malam" />
-        <FeatureItem icon="💜" title="Gratis Selamanya" desc="Tidak ada biaya berlangganan, selamanya gratis" />
+        <FeatureItem icon="📅" title="Jadwal Update" desc="Cek jadwal episode terbaru yang tayang hari ini" />
+        <FeatureItem icon="💜" title="Gratis Selamanya" desc="Tidak ada biaya, selamanya gratis untuk semua" />
       </div>
 
       {/* Minimum spec */}
