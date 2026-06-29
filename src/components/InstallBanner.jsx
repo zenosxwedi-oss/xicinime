@@ -1,47 +1,29 @@
 import { useState, useEffect } from 'react';
 
 /**
- * PWA Install Banner — shows on mobile when app is not installed.
- * Captures the beforeinstallprompt event and shows a custom banner.
+ * App Download Banner — shows on mobile, links to native Xicinime app download.
  */
 const InstallBanner = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Don't show if already dismissed this session
-    if (sessionStorage.getItem('pwa_banner_dismissed')) return;
-
-    // Don't show if already installed (standalone mode)
+    if (sessionStorage.getItem('app_banner_dismissed')) return;
+    // Only show on mobile devices
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) return;
+    // Don't show if already in standalone/installed mode
     if (window.matchMedia('(display-mode: standalone)').matches) return;
     if (window.navigator.standalone) return;
 
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Show banner after 5s delay
-      setTimeout(() => setShow(true), 5000);
-    };
-
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    const timer = setTimeout(() => setShow(true), 4000);
+    return () => clearTimeout(timer);
   }, []);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setShow(false);
-    }
-    setDeferredPrompt(null);
-  };
 
   const handleDismiss = () => {
     setShow(false);
     setDismissed(true);
-    sessionStorage.setItem('pwa_banner_dismissed', '1');
+    sessionStorage.setItem('app_banner_dismissed', '1');
   };
 
   if (!show || dismissed) return null;
@@ -54,33 +36,28 @@ const InstallBanner = () => {
       padding: '12px 16px',
       background: 'var(--color-surface)',
       borderTop: '2px solid var(--color-primary)',
-      boxShadow: '0 -4px 20px rgba(147, 51, 234, 0.2)',
+      boxShadow: '0 -4px 20px rgba(147, 51, 234, 0.25)',
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
       animation: 'fadeInUp 0.4s ease-out',
       backdropFilter: 'blur(12px)',
     }}>
-      {/* Logo */}
       <img
-        src="/icon-192.png"
+        src="/logo.png"
         alt="Xicinime"
         style={{ width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0 }}
       />
-
-      {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '2px' }}>
-          Install Xicinime
+          📱 Download App Xicinime
         </div>
         <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
-          Akses lebih cepat, nonton tanpa buka browser
+          Nonton lebih nyaman tanpa buka browser
         </div>
       </div>
-
-      {/* Install button */}
-      <button
-        onClick={handleInstall}
+      <a
+        href="/download"
         style={{
           padding: '8px 16px',
           background: 'var(--color-primary)',
@@ -92,28 +69,22 @@ const InstallBanner = () => {
           cursor: 'pointer',
           whiteSpace: 'nowrap',
           flexShrink: 0,
+          textDecoration: 'none',
+          display: 'inline-block',
         }}
       >
-        Install
-      </button>
-
-      {/* Close */}
+        Download
+      </a>
       <button
         onClick={handleDismiss}
         style={{
-          background: 'none',
-          border: 'none',
+          background: 'none', border: 'none',
           color: 'var(--color-text-dim)',
-          fontSize: '1.1rem',
-          cursor: 'pointer',
-          padding: '4px',
-          lineHeight: 1,
-          flexShrink: 0,
+          fontSize: '1.1rem', cursor: 'pointer',
+          padding: '4px', lineHeight: 1, flexShrink: 0,
         }}
         aria-label="Tutup"
-      >
-        ✕
-      </button>
+      >✕</button>
     </div>
   );
 };
