@@ -6,6 +6,7 @@ import {
   ActivityIndicator, Alert, BackHandler, Platform, Pressable, ScrollView,
   StyleSheet, Text, View,
 } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing } from '@/constants/Theme';
@@ -14,6 +15,9 @@ import { addToWatchHistory } from '@/utils/watchHistory';
 import { showRewardedAd } from '@/utils/admob';
 
 const SITE_WATCH = 'https://xicinime.my.id/watch/';
+const ADMOB_BANNER_ID = __DEV__
+  ? TestIds.BANNER
+  : 'ca-app-pub-3848627834535677/5316005468';
 
 export default function WatchScreen() {
   const { episodeId } = useLocalSearchParams<{ episodeId: string }>();
@@ -25,7 +29,6 @@ export default function WatchScreen() {
   const [epData, setEpData] = useState<any>(null);
   const [adLoading, setAdLoading] = useState(false);
 
-  // Hardware back button
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -35,7 +38,6 @@ export default function WatchScreen() {
     return () => handler.remove();
   }, [canGoBack]);
 
-  // Fetch episode metadata for history
   useEffect(() => {
     if (!episodeId) return;
     api.episodeDetail(episodeId)
@@ -119,6 +121,15 @@ export default function WatchScreen() {
         />
       </View>
 
+      {/* AdMob Banner between player and nav */}
+      <View style={styles.adWrap}>
+        <BannerAd
+          unitId={ADMOB_BANNER_ID}
+          size={BannerAdSize.BANNER}
+          requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+        />
+      </View>
+
       {/* Navigation */}
       <View style={[styles.navBar, { paddingBottom: insets.bottom + 8 }]}>
         <Pressable
@@ -160,6 +171,7 @@ const styles = StyleSheet.create({
   playerLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg, zIndex: 5 },
   loadText: { color: Colors.subtext, marginTop: 12, fontSize: 13 },
   webview: { flex: 1, backgroundColor: Colors.black },
+  adWrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface, minHeight: 52, paddingVertical: 4 },
   navBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingTop: 10,
