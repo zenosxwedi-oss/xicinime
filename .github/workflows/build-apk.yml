@@ -26,24 +26,17 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli@latest
 
-      - name: Create Expo project (if not linked)
-        working-directory: mobile
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          # Create project on expo.dev so EAS gets a valid UUID
-          eas init --id xicinime-mobile --non-interactive 2>/dev/null || eas init --non-interactive || true
-
       - name: Build APK with EAS
         working-directory: mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile preview --non-interactive
 
-      - name: Get APK download URL
+      - name: Print APK download link
         working-directory: mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "Build submitted. Check https://expo.dev/accounts/xick/projects/xicinime-mobile/builds for the APK download link."
-          eas build:list --platform android --limit 1 --json 2>/dev/null | python3 -c "import sys,json; data=json.load(sys.stdin); print('APK URL:', data[0].get('artifacts',{}).get('buildUrl','(pending)'))" || true
+          echo "✅ Build submitted to EAS."
+          echo "📱 Check APK at: https://expo.dev/accounts/xick/projects/xicinime-mobile/builds"
+          eas build:list --platform android --limit 1 2>/dev/null || true
