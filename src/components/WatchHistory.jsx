@@ -1,9 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getWatchHistory, clearWatchHistory, formatTime } from '../utils/watchHistory';
 
 const WatchHistory = () => {
-  const [history, setHistory] = useState(() => getWatchHistory());
+  const [history, setHistory] = useState([]);
+
+  // Always refresh from localStorage when the component mounts
+  useEffect(() => {
+    setHistory(getWatchHistory());
+  }, []);
+
+  // Listen for storage changes from other tabs
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'xicinime_watch_history' || e.key === null) {
+        setHistory(getWatchHistory());
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const handleClear = () => {
     clearWatchHistory();
@@ -49,7 +65,6 @@ const WatchHistory = () => {
               <div className="card-overlay">
                 <span className="play-icon" aria-hidden>▶</span>
               </div>
-              {/* Progress bar */}
               {item.currentTime > 0 && item.duration > 0 && (
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0,
