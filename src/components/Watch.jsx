@@ -6,6 +6,7 @@ import { createPlayer } from '@videojs/react';
 import { VideoSkin, Video, videoFeatures } from '@videojs/react/video';
 import '@videojs/react/video/skin.css';
 import WatchLoading from './WatchLoading';
+import AdBanner from './AdBanner';
 import EmbedPlayer from './EmbedPlayer';
 
 const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
@@ -469,6 +470,9 @@ const Watch = () => {
           <Link to={`/watch/${episodeData?.navigation?.next_episode?.slug || episodeData?.nextEpisode?.episodeId || episodeId}`} className="btn btn-primary" style={{ flex: 1, textAlign: 'center' }}>Eps Berikutnya →</Link>
         )}
       </div>
+
+      {/* AdSense Banner */}
+      <AdBanner format="auto" style={{ margin: '16px 0' }} />
 
       {/* Anime Info */}
       {animeData && (
