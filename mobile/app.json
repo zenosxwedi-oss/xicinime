@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Xicinime",
+    "slug": "xicinime-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "xicinime",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#08080f"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "id.xicinime.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "id.xicinime.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0d0d1a"
+      },
+      "permissions": [],
+      "userInterfaceStyle": "dark",
+      "allowBackup": false
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3848627834535677~3573045936",
+          "iosAppId": "ca-app-pub-3848627834535677~3573045936",
+          "delayAppMeasurementInit": false,
+          "userTrackingUsageDescription": "Iklan ini membantu mendukung Xicinime agar bisa terus update."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
