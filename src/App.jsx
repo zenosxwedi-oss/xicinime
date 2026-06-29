@@ -28,6 +28,7 @@ const Genres = lazy(() => import('./components/Genres'))
 const AZList = lazy(() => import('./components/AZList'))
 const Schedule = lazy(() => import('./components/Schedule'))
 const WatchHistory = lazy(() => import('./components/WatchHistory'))
+const Download = lazy(() => import('./components/Download'))
 
 const RouteFallback = () => (
   <div className="loading-container main-container" role="status" aria-live="polite">
@@ -74,6 +75,7 @@ function App() {
                 <Route path="/anime/:animeId" element={<AnimeDetail />} />
                 <Route path="/anime/:provider/:animeId" element={<AnimeDetail />} />
                 <Route path="/watch/:episodeId" element={<Watch />} />
+                <Route path="/download" element={<Download />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
