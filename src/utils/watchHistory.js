@@ -4,11 +4,12 @@ const MAX_ITEMS = 100;
 export const getWatchHistory = () => {
   if (typeof window === 'undefined') return [];
   try {
-    // Migrate old key
-    const old = window.localStorage.getItem('xicinime_watch_history');
-    if (old) {
-      window.localStorage.setItem(STORAGE_KEY, old);
-      window.localStorage.removeItem('xicinime_watch_history');
+    // Migrate from old Funknime key (one-time migration, different key name)
+    const OLD_KEY = 'funknime_watch_history';
+    const oldData = window.localStorage.getItem(OLD_KEY);
+    if (oldData) {
+      window.localStorage.setItem(STORAGE_KEY, oldData);
+      window.localStorage.removeItem(OLD_KEY);
     }
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -38,15 +39,14 @@ export const addToWatchHistory = (item) => {
     const existingIdx = history.findIndex((h) => h.episodeId === item.episodeId);
 
     if (existingIdx >= 0) {
-      // Merge: keep existing progress, update metadata
       const existing = history[existingIdx];
-      history.splice(existingIdx, 1); // remove from old position
+      history.splice(existingIdx, 1);
       history.unshift({
         ...existing,
         ...item,
-        // PRESERVE progress if already saved
-        currentTime: existing.currentTime || item.currentTime || 0,
-        duration: existing.duration || item.duration || 0,
+        // Preserve existing progress if already saved
+        currentTime: item.currentTime || existing.currentTime || 0,
+        duration: item.duration || existing.duration || 0,
         timestamp: Date.now(),
       });
     } else {
@@ -66,7 +66,7 @@ export const addToWatchHistory = (item) => {
 
 /**
  * Update watch progress for an episode.
- * Works by episodeId — saves currentTime + duration.
+ * If episode not yet in history, add a minimal entry so progress is tracked.
  */
 export const updateWatchProgress = (episodeId, currentTime, duration) => {
   if (typeof window === 'undefined' || !episodeId || !currentTime) return;
@@ -78,6 +78,21 @@ export const updateWatchProgress = (episodeId, currentTime, duration) => {
       history[idx].duration = Math.floor(duration || 0);
       history[idx].lastWatched = Date.now();
       _save(history);
+    } else {
+      // Episode not yet in history — add a minimal entry
+      history.unshift({
+        episodeId,
+        animeId: null,
+        animeTitle: 'Episode',
+        episodeTitle: episodeId,
+        poster: '',
+        provider: 'otakudesu',
+        currentTime: Math.floor(currentTime),
+        duration: Math.floor(duration || 0),
+        timestamp: Date.now(),
+        lastWatched: Date.now(),
+      });
+      _save(history.slice(0, MAX_ITEMS));
     }
   } catch {
     // Ignore errors
@@ -95,6 +110,24 @@ export const getWatchProgress = (episodeId) => {
     return item?.currentTime || 0;
   } catch {
     return 0;
+  }
+};
+
+/**
+ * Patch an existing history entry with additional metadata (e.g. title, poster)
+ * called after anime detail loads, to enrich a minimal entry.
+ */
+export const patchWatchHistoryMeta = (episodeId, meta) => {
+  if (typeof window === 'undefined' || !episodeId) return;
+  try {
+    const history = getWatchHistory();
+    const idx = history.findIndex((h) => h.episodeId === episodeId);
+    if (idx >= 0) {
+      history[idx] = { ...history[idx], ...meta };
+      _save(history);
+    }
+  } catch {
+    // Ignore errors
   }
 };
 
