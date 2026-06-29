@@ -30,11 +30,58 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Create Gradle init script for Kotlin compatibility
+        run: |
+          mkdir -p ~/.gradle/init.d
+          node << 'JSEOF'
+          const fs = require('fs');
+          const os = require('os');
+          const initScript = [
+            '// CI init: skip Kotlin metadata version check for play-services-ads 25.4+ compat',
+            'allprojects {',
+            '    tasks.configureEach { t ->',
+            "        if (t.hasProperty('kotlinOptions')) {",
+            "            t.kotlinOptions.freeCompilerArgs += ['-Xskip-metadata-version-check']",
+            '        }',
+            '    }',
+            '}',
+          ].join('\n');
+          const path = os.homedir() + '/.gradle/init.d/kotlin-compat-fix.gradle';
+          fs.writeFileSync(path, initScript);
+          console.log('Created:', path);
+          console.log(initScript);
+          JSEOF
+
       - name: Install Expo CLI & dependencies
         working-directory: mobile
         run: |
           npm install -g @expo/cli@latest
           npm install --legacy-peer-deps
+
+      - name: Patch react-native-google-mobile-ads before prebuild
+        working-directory: mobile
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          const libPath = 'node_modules/react-native-google-mobile-ads/android/build.gradle';
+          try {
+            const content = fs.readFileSync(libPath, 'utf8');
+            const patch = [
+              '',
+              '// CI patch: skip Kotlin metadata version check for play-services-ads 25.4+',
+              'android {',
+              '    kotlinOptions {',
+              "        freeCompilerArgs += ['-Xskip-metadata-version-check']",
+              '    }',
+              '}',
+              '',
+            ].join('\n');
+            fs.appendFileSync(libPath, patch);
+            console.log('Patched react-native-google-mobile-ads/android/build.gradle');
+          } catch (e) {
+            console.log('Warning: could not patch library:', e.message);
+          }
+          JSEOF
 
       - name: Generate Android native project (expo prebuild)
         working-directory: mobile
@@ -43,36 +90,38 @@ jobs:
         env:
           CI: "1"
 
-      - name: Patch build.gradle - add Kotlin freeCompilerArgs for play-services-ads compat
+      - name: Patch root android/build.gradle - insert configureEach before expo plugins
         working-directory: mobile/android
         run: |
-          echo "=== Current root build.gradle ==="
-          cat build.gradle
-          echo ""
-          echo "=== Applying Kotlin skip-metadata-version-check patch ==="
           node << 'JSEOF'
           const fs = require('fs');
-          const existing = fs.readFileSync('build.gradle', 'utf8');
-          console.log('build.gradle length:', existing.length);
+          const content = fs.readFileSync('build.gradle', 'utf8');
+          console.log('build.gradle content:\n' + content);
+          const insertBefore = 'apply plugin: "expo-root-project"';
           const patch = [
-            '',
-            '// CI fix: skip Kotlin metadata version check for play-services-ads 25.4+ compatibility',
+            '// CI fix: configureEach for Kotlin metadata skip (must be before expo/rn plugins)',
             'subprojects {',
-            '    afterEvaluate { proj ->',
-            '        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { t ->',
-            '            t.kotlinOptions {',
-            "                freeCompilerArgs += ['-Xskip-metadata-version-check']",
-            '            }',
+            '    tasks.configureEach { t ->',
+            "        if (t.hasProperty('kotlinOptions')) {",
+            "            t.kotlinOptions.freeCompilerArgs += ['-Xskip-metadata-version-check']",
             '        }',
             '    }',
             '}',
             '',
           ].join('\n');
-          fs.appendFileSync('build.gradle', patch);
-          console.log('Patch appended successfully');
+          const idx = content.indexOf(insertBefore);
+          if (idx !== -1) {
+            const newContent = content.slice(0, idx) + patch + content.slice(idx);
+            fs.writeFileSync('build.gradle', newContent);
+            console.log('Patch inserted before expo-root-project plugin');
+          } else {
+            fs.appendFileSync('build.gradle', '\n' + patch);
+            console.log('Warning: expo-root-project not found, appended to end');
+          }
+          console.log('\n=== Last 20 lines of patched build.gradle ===');
+          const lines = fs.readFileSync('build.gradle', 'utf8').split('\n');
+          console.log(lines.slice(-20).join('\n'));
           JSEOF
-          echo "=== Last 15 lines of patched build.gradle ==="
-          tail -15 build.gradle
 
       - name: Decode & place release keystore
         run: |
@@ -143,7 +192,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v3
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v4
           restore-keys: gradle-
 
       - name: Build Release APK
