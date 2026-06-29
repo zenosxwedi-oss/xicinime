@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { animeAPI, APIError } from '../services/api';
 
 const PROVIDER_ORDER = ['otakudesu', 'samehadaku', 'stream'];
+const BATCH_SIZE = 100;
 
 const AnimeDetail = () => {
   const { animeId, provider: providerParam } = useParams();
@@ -12,8 +13,10 @@ const AnimeDetail = () => {
   const [batchUrl, setBatchUrl] = useState(null);
   const [batchLoading, setBatchLoading] = useState(false);
   const [providerUsed, setProviderUsed] = useState(null);
+  const [episodeBatch, setEpisodeBatch] = useState(0);
 
   useEffect(() => {
+    setEpisodeBatch(0);
     const fetchAnimeData = async () => {
       setLoading(true);
       setError(null);
@@ -57,21 +60,17 @@ const AnimeDetail = () => {
 
   useEffect(() => {
     if ((providerUsed || (providerParam || 'otakudesu').toLowerCase()) !== 'otakudesu') return;
-    // Extract batch URL from various possible formats
     const extractBatchUrl = (val) => {
       if (!val) return null;
       if (typeof val === 'string' && val.startsWith('http')) return val;
       if (typeof val === 'object') {
-        // Could be { url: '...' } or { batchUrl: '...' } or { downloadUrl: '...' }
         const u = val.url || val.batchUrl || val.downloadUrl || val.href;
         if (typeof u === 'string' && u.startsWith('http')) return u;
-        // Could be array of links
         if (Array.isArray(val)) {
           const first = val[0];
           if (typeof first === 'string') return first;
           if (first?.url) return first.url;
         }
-        // Nested: { list: [{ url }] }
         if (Array.isArray(val.list) && val.list[0]?.url) return val.list[0].url;
       }
       return null;
@@ -120,7 +119,6 @@ const AnimeDetail = () => {
     );
   }
 
-  // Only use batch if it's a valid URL string (not object)
   const batchLink = (typeof batchUrl === 'string' && batchUrl.startsWith('http')) ? batchUrl
     : (typeof anime?.batch === 'string' && anime.batch.startsWith('http')) ? anime.batch
     : null;
@@ -131,7 +129,6 @@ const AnimeDetail = () => {
     return 'Otakudesu';
   })();
 
-  // Episode list - use actual episode count from API, not array length
   const episodeList = anime.episodeList ?? [];
   const totalEpisodes = anime.episodes ?? anime.episodeCount ?? episodeList.length;
   const getEpisodeNum = (ep) => {
@@ -141,6 +138,14 @@ const AnimeDetail = () => {
   };
   const sortedEpisodeList = episodeList.slice().sort((a, b) => getEpisodeNum(a) - getEpisodeNum(b));
   const firstEpisode = sortedEpisodeList.length > 0 ? sortedEpisodeList[0] : null;
+  const latestEpisode = sortedEpisodeList.length > 0 ? sortedEpisodeList[sortedEpisodeList.length - 1] : null;
+
+  // Episode batch pagination
+  const totalBatches = Math.ceil(sortedEpisodeList.length / BATCH_SIZE);
+  const currentBatchEpisodes = sortedEpisodeList.slice(
+    episodeBatch * BATCH_SIZE,
+    (episodeBatch + 1) * BATCH_SIZE
+  );
 
   return (
     <div className="anime-detail main-container" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
@@ -150,7 +155,7 @@ const AnimeDetail = () => {
         <span>{anime.title}</span>
       </nav>
 
-      {/* Detail Header - Horizontal layout */}
+      {/* Detail Header */}
       <div className="detail-header">
         <div className="detail-poster">
           <img
@@ -183,8 +188,13 @@ const AnimeDetail = () => {
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {firstEpisode?.episodeId && (
-              <Link to={`/watch/${firstEpisode.episodeId}`} className="btn btn-primary">
-                ▶ Putar Episode 1
+              <Link to={`/watch/${firstEpisode.episodeId}`} className="btn btn-secondary">
+                ▶ Episode 1
+              </Link>
+            )}
+            {latestEpisode?.episodeId && latestEpisode.episodeId !== firstEpisode?.episodeId && (
+              <Link to={`/watch/${latestEpisode.episodeId}`} className="btn btn-primary">
+                ▶ Episode Terbaru
               </Link>
             )}
             {(batchLink || batchLoading) && (
@@ -215,11 +225,51 @@ const AnimeDetail = () => {
       {/* Episode List */}
       {sortedEpisodeList.length > 0 && (
         <div className="episode-list">
-          <div className="episode-list-header">
-            Daftar Episode ({sortedEpisodeList.length})
+          <div className="episode-list-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span>Daftar Episode ({sortedEpisodeList.length})</span>
+            {latestEpisode?.episodeId && (
+              <Link
+                to={`/watch/${latestEpisode.episodeId}`}
+                state={{ provider: providerUsed }}
+                style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none', background: 'rgba(var(--color-primary-rgb, 147,51,234),0.12)', padding: '4px 10px', borderRadius: '20px', border: '1px solid var(--color-primary)' }}
+              >
+                ▶ Tonton Terbaru
+              </Link>
+            )}
           </div>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {sortedEpisodeList.map((episode, idx) => (
+
+          {/* Batch navigation tabs — only show if > 100 episodes */}
+          {totalBatches > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px 12px', borderBottom: 'var(--border-width) solid var(--color-border)', background: 'var(--color-surface)' }}>
+              {Array.from({ length: totalBatches }, (_, i) => {
+                const start = i * BATCH_SIZE + 1;
+                const end = Math.min((i + 1) * BATCH_SIZE, sortedEpisodeList.length);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setEpisodeBatch(i)}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      border: episodeBatch === i ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                      background: episodeBatch === i ? 'var(--color-primary)' : 'transparent',
+                      color: episodeBatch === i ? '#fff' : 'var(--color-text-muted)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: episodeBatch === i ? 700 : 400,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {start}–{end}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+            {currentBatchEpisodes.map((episode, idx) => (
               <Link
                 key={episode.episodeId ?? idx}
                 to={`/watch/${episode.episodeId}`}
@@ -227,7 +277,7 @@ const AnimeDetail = () => {
                 state={{ provider: providerUsed }}
               >
                 <span className="episode-title">
-                  Episode {episode.eps ?? episode.episodeNumber ?? episode.title ?? idx + 1}
+                  Episode {episode.eps ?? episode.episodeNumber ?? episode.title ?? (episodeBatch * BATCH_SIZE + idx + 1)}
                 </span>
                 {episode.date && <span className="episode-date">{episode.date}</span>}
               </Link>
