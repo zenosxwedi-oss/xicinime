@@ -43,28 +43,28 @@ jobs:
         env:
           CI: "1"
 
-      - name: Fix Kotlin version for play-services-ads compatibility
+      - name: Patch build.gradle — add Kotlin skip-metadata-version-check
         working-directory: mobile/android
         run: |
-          node << 'JSEOF'
-          const fs = require('fs');
+          echo "=== Showing root build.gradle structure ==="
+          cat build.gradle
+          echo ""
+          echo "=== Appending Kotlin freeCompilerArgs subprojects block ==="
+          cat >> build.gradle << 'GROOVYEOF'
 
-          // Upgrade Kotlin in build.gradle (root android project)
-          let content = fs.readFileSync('build.gradle', 'utf8');
-          console.log('Current Kotlin version line:', content.match(/kotlinVersion[^\n]*/)?.[0] || 'not found');
-          const before = content;
-          // Replace kotlinVersion = "X.Y.Z" with 2.3.0
-          content = content.replace(/kotlinVersion\s*=\s*["'][\d.]+["']/, 'kotlinVersion = "2.3.0"');
-          if (content === before) {
-            // Try alternate format
-            content = content.replace(
-              /("org\.jetbrains\.kotlin:kotlin-gradle-plugin:)[^"]+(")/,
-              '$12.3.0$2'
-            );
-          }
-          fs.writeFileSync('build.gradle', content);
-          console.log('Updated Kotlin version line:', content.match(/kotlinVersion[^\n]*/)?.[0] || 'not found');
-          JSEOF
+// --- CI patch: skip Kotlin metadata version check for play-services-ads 25.4+ ---
+subprojects {
+    afterEvaluate { proj ->
+        proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { t ->
+            t.kotlinOptions {
+                freeCompilerArgs += ['-Xskip-metadata-version-check']
+            }
+        }
+    }
+}
+GROOVYEOF
+          echo "=== Patch applied. Last 20 lines of build.gradle ==="
+          tail -20 build.gradle
 
       - name: Decode & place release keystore
         run: |
@@ -77,9 +77,8 @@ jobs:
           node << 'JSEOF'
           const fs = require('fs');
           let content = fs.readFileSync('app/build.gradle', 'utf8');
-          console.log('Original build.gradle length:', content.length);
+          console.log('Original app/build.gradle length:', content.length);
 
-          // Step 1: Insert release signingConfig block if not present
           if (!content.includes('release.keystore')) {
             const signingIdx = content.indexOf('signingConfigs {');
             if (signingIdx !== -1) {
@@ -106,7 +105,6 @@ jobs:
             console.log('release.keystore already referenced');
           }
 
-          // Step 2: In buildTypes.release, change signing to release
           const buildTypesIdx = content.indexOf('buildTypes {');
           if (buildTypesIdx !== -1) {
             const releaseTypeIdx = content.indexOf('release {', buildTypesIdx);
@@ -138,7 +136,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-kotlin230
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v2
           restore-keys: gradle-
 
       - name: Build Release APK
@@ -157,7 +155,6 @@ jobs:
           echo "Found: $APK"
           ls -lh "$APK"
           SIZE_MB=$(du -m "$APK" | cut -f1)
-          echo "Size: ${SIZE_MB} MB"
           VERSION="v1.0.${{ github.run_number }}"
           NEW_NAME="xicinime-${VERSION}.apk"
           cp "$APK" "$NEW_NAME"
