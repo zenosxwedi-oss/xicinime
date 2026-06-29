@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { animeAPI } from '../services/api';
-import { addToWatchHistory, updateWatchProgress, getWatchProgress } from '../utils/watchHistory';
+import { addToWatchHistory, updateWatchProgress, getWatchProgress, patchWatchHistoryMeta } from '../utils/watchHistory';
 import { createPlayer } from '@videojs/react';
 import { VideoSkin, Video, videoFeatures } from '@videojs/react/video';
 import '@videojs/react/video/skin.css';
@@ -108,9 +108,15 @@ const Watch = () => {
           setVideoUrl(dd.defaultStreamingUrl);
           setSelectedQuality('Streaming');
           if (dd.server.qualities[0]?.serverList?.[0]) setSelectedServer(dd.server.qualities[0].serverList[0]);
-          if (data.donghua_details) {
-            addToWatchHistory({ animeId: data.donghua_details.slug, episodeId, animeTitle: data.donghua_details.title, episodeTitle: data.episode, poster: data.donghua_details.poster, provider: 'donghua' });
-          }
+          // Save to history immediately with whatever data we have
+          addToWatchHistory({
+            animeId: data.donghua_details?.slug || episodeId,
+            episodeId,
+            animeTitle: data.donghua_details?.title || data.episode || episodeId,
+            episodeTitle: data.episode || episodeId,
+            poster: data.donghua_details?.poster || '',
+            provider: 'donghua',
+          });
           setLoading(false); return;
         }
 
@@ -139,15 +145,33 @@ const Watch = () => {
 
         if (cancelled) return;
 
+        // Save to history immediately with episode data we already have
+        addToWatchHistory({
+          animeId: normalized?.animeId || normalized?.animeSlug || episodeId,
+          episodeId,
+          animeTitle: normalized?.animeTitle || normalized?.title || episodeId,
+          episodeTitle: normalized?.title || episodeId,
+          poster: normalized?.poster || normalized?.poster_url || '',
+          provider: usedProvider || 'otakudesu',
+        });
+
+        // Then enrich with full anime detail in background (non-blocking)
         if (normalized?.animeId) {
-          try {
-            const animeRes = await animeAPI.getAnimeDetail(normalized.animeId);
+          animeAPI.getAnimeDetail(normalized.animeId).then((animeRes) => {
             if (cancelled) return;
-            setAnimeData(animeRes?.data || null);
-            addToWatchHistory({ animeId: animeRes?.data?.animeId || normalized.animeId, episodeId, animeTitle: animeRes?.data?.title || normalized.title || episodeId, episodeTitle: normalized.title || episodeId, poster: animeRes?.data?.poster || animeRes?.data?.poster_url || '', provider: usedProvider || 'otakudesu' });
-          } catch {
-            // Ignore history save errors
-          }
+            const ad = animeRes?.data || null;
+            if (ad) {
+              setAnimeData(ad);
+              // Patch the history entry with better metadata
+              patchWatchHistoryMeta(episodeId, {
+                animeId: ad.animeId || normalized.animeId,
+                animeTitle: ad.title || normalized.title || episodeId,
+                poster: ad.poster || ad.poster_url || '',
+              });
+            }
+          }).catch(() => {
+            // Ignore — history was already saved above
+          });
         }
       } catch (err) {
         if (!cancelled) setError(err?.message ?? String(err));
