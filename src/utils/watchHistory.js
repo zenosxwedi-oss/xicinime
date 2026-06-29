@@ -4,7 +4,6 @@ const MAX_ITEMS = 100;
 export const getWatchHistory = () => {
   if (typeof window === 'undefined') return [];
   try {
-    // Migrate from old Funknime key (one-time migration, different key name)
     const OLD_KEY = 'funknime_watch_history';
     const oldData = window.localStorage.getItem(OLD_KEY);
     if (oldData) {
@@ -24,19 +23,16 @@ const _save = (history) => {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
   } catch {
-    // Ignore localStorage errors (quota, privacy mode)
+    // Ignore localStorage errors
   }
 };
 
-/**
- * Add or update watch history entry.
- * If the episode already exists, MERGE (preserve currentTime/duration).
- */
 export const addToWatchHistory = (item) => {
   if (typeof window === 'undefined' || !item?.episodeId) return;
   try {
     const history = getWatchHistory();
     const existingIdx = history.findIndex((h) => h.episodeId === item.episodeId);
+    const now = Date.now();
 
     if (existingIdx >= 0) {
       const existing = history[existingIdx];
@@ -44,17 +40,23 @@ export const addToWatchHistory = (item) => {
       history.unshift({
         ...existing,
         ...item,
-        // Preserve existing progress if already saved
+        // Never lose existing title/poster if new item doesn't have them
+        animeTitle: item.animeTitle || existing.animeTitle || 'Anime',
+        poster: item.poster || existing.poster || '',
         currentTime: item.currentTime || existing.currentTime || 0,
         duration: item.duration || existing.duration || 0,
-        timestamp: Date.now(),
+        timestamp: now,
+        lastWatched: now,
       });
     } else {
       history.unshift({
+        animeTitle: 'Anime',
+        poster: '',
+        currentTime: 0,
+        duration: 0,
         ...item,
-        currentTime: item.currentTime || 0,
-        duration: item.duration || 0,
-        timestamp: Date.now(),
+        timestamp: now,
+        lastWatched: now,
       });
     }
 
@@ -64,10 +66,6 @@ export const addToWatchHistory = (item) => {
   }
 };
 
-/**
- * Update watch progress for an episode.
- * If episode not yet in history, add a minimal entry so progress is tracked.
- */
 export const updateWatchProgress = (episodeId, currentTime, duration) => {
   if (typeof window === 'undefined' || !episodeId || !currentTime) return;
   try {
@@ -79,11 +77,10 @@ export const updateWatchProgress = (episodeId, currentTime, duration) => {
       history[idx].lastWatched = Date.now();
       _save(history);
     } else {
-      // Episode not yet in history — add a minimal entry
       history.unshift({
         episodeId,
         animeId: null,
-        animeTitle: 'Episode',
+        animeTitle: 'Anime',
         episodeTitle: episodeId,
         poster: '',
         provider: 'otakudesu',
@@ -99,9 +96,6 @@ export const updateWatchProgress = (episodeId, currentTime, duration) => {
   }
 };
 
-/**
- * Get saved progress for an episode (returns seconds or 0)
- */
 export const getWatchProgress = (episodeId) => {
   if (typeof window === 'undefined' || !episodeId) return 0;
   try {
@@ -113,17 +107,19 @@ export const getWatchProgress = (episodeId) => {
   }
 };
 
-/**
- * Patch an existing history entry with additional metadata (e.g. title, poster)
- * called after anime detail loads, to enrich a minimal entry.
- */
 export const patchWatchHistoryMeta = (episodeId, meta) => {
   if (typeof window === 'undefined' || !episodeId) return;
   try {
     const history = getWatchHistory();
     const idx = history.findIndex((h) => h.episodeId === episodeId);
     if (idx >= 0) {
-      history[idx] = { ...history[idx], ...meta };
+      history[idx] = {
+        ...history[idx],
+        ...meta,
+        // Never overwrite with empty values
+        animeTitle: meta.animeTitle || history[idx].animeTitle || 'Anime',
+        poster: meta.poster || history[idx].poster || '',
+      };
       _save(history);
     }
   } catch {
@@ -131,9 +127,6 @@ export const patchWatchHistoryMeta = (episodeId, meta) => {
   }
 };
 
-/**
- * Format seconds to mm:ss or hh:mm:ss
- */
 export const formatTime = (seconds) => {
   if (!seconds || seconds <= 0) return null;
   const s = Math.floor(seconds);
