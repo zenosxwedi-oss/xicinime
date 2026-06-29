@@ -5,6 +5,7 @@ import { SkeletonAnimeGrid } from './Skeleton';
 import AnimeCard from './AnimeCard';
 import AnimeCarousel from './AnimeCarousel';
 import Footer from './Footer';
+import AdBanner from './AdBanner';
 import { getWatchHistory, formatTime } from '../utils/watchHistory';
 import { mergeAnimeLists } from '../utils/animeUtils';
 
@@ -228,6 +229,9 @@ const Home = () => {
         </section>
       )}
 
+      {/* AdSense Banner */}
+      <AdBanner format="auto" style={{ margin: '8px 0' }} />
+
       {/* Anime sections */}
       {ongoing.length > 0 && (
         <section className="section home-rail">
@@ -241,6 +245,8 @@ const Home = () => {
           <div className="home-rail-scroll">{buildRailItems(donghuaOngoing, 'Ongoing', true)}</div>
         </section>
       )}
+      {ongoing.length > 0 && completed.length > 0 && <AdBanner format="auto" style={{ margin: '8px 0' }} />}
+
       {completed.length > 0 && (
         <section className="section home-rail">
           <div className="section-header home-rail-header"><h2 className="section-title">✅ Anime Baru Selesai</h2><Link to="/completed" className="view-all">Lihat semua</Link></div>
