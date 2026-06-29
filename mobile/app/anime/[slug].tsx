@@ -7,9 +7,14 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing } from '@/constants/Theme';
 import { api } from '@/services/api';
+
+const ADMOB_BANNER_ID = __DEV__
+  ? TestIds.BANNER
+  : 'ca-app-pub-3848627834535677/3573045936';
 
 export default function AnimeDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -46,6 +51,8 @@ export default function AnimeDetailScreen() {
 
   const episodes: any[] = detail.episodeList ?? detail.episodes ?? [];
   const genres: any[] = detail.genreList ?? detail.genres ?? [];
+  const firstEp = episodes[0];
+  const lastEp = episodes[episodes.length - 1];
 
   return (
     <View style={[styles.root, { backgroundColor: Colors.bg }]}>
@@ -73,6 +80,39 @@ export default function AnimeDetailScreen() {
               {detail.studio && <Text style={styles.metaText} numberOfLines={1}>🎬 {detail.studio}</Text>}
             </View>
           </View>
+        </View>
+
+        {/* Play buttons */}
+        {episodes.length > 0 && (
+          <View style={styles.playRow}>
+            {firstEp && (
+              <Pressable
+                style={[styles.playBtn, { flex: 1 }]}
+                onPress={() => router.push(`/watch/${firstEp.slug || firstEp.episodeId}` as any)}
+              >
+                <Feather name="play" size={14} color={Colors.white} />
+                <Text style={styles.playBtnText}>Episode 1</Text>
+              </Pressable>
+            )}
+            {lastEp && lastEp !== firstEp && (
+              <Pressable
+                style={[styles.playBtnOutline, { flex: 1 }]}
+                onPress={() => router.push(`/watch/${lastEp.slug || lastEp.episodeId}` as any)}
+              >
+                <Feather name="skip-forward" size={14} color={Colors.primary} />
+                <Text style={styles.playBtnOutlineText}>Terbaru</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
+        {/* AdMob Banner */}
+        <View style={styles.adWrap}>
+          <BannerAd
+            unitId={ADMOB_BANNER_ID}
+            size={BannerAdSize.BANNER}
+            requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+          />
         </View>
 
         {/* Genres */}
@@ -137,6 +177,12 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: Colors.primary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.xs },
   badgeText: { color: Colors.white, fontSize: 10, fontWeight: '700' },
   metaText: { color: Colors.subtext, fontSize: 11, marginBottom: 3 },
+  playRow: { flexDirection: 'row', gap: 10, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  playBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.primary, paddingVertical: 11, borderRadius: Radius.md },
+  playBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  playBtnOutline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'transparent', paddingVertical: 11, borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.primary },
+  playBtnOutlineText: { color: Colors.primary, fontWeight: '700', fontSize: 13 },
+  adWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8, backgroundColor: Colors.surface, minHeight: 60, marginVertical: 8 },
   genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.lg, marginTop: Spacing.md },
   genreBadge: { backgroundColor: Colors.surface2, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
   genreText: { color: Colors.subtext, fontSize: 11, fontWeight: '600' },
@@ -151,4 +197,5 @@ const styles = StyleSheet.create({
   },
   epIcon: { width: 30, height: 30, borderRadius: Radius.xs, backgroundColor: 'rgba(147,51,234,0.15)', alignItems: 'center', justifyContent: 'center' },
   epText: { flex: 1, color: Colors.text, fontSize: 13 },
+  success: { backgroundColor: '#22c55e' },
 });
