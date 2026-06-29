@@ -18,7 +18,6 @@
     <meta name="apple-mobile-web-app-title" content="Xicinime" />
     <meta name="theme-color" content="#9333EA" />
     <meta name="msapplication-TileColor" content="#9333EA" />
-    <link rel="manifest" href="/manifest.json" />
 
     <!-- HilltopAds Verification -->
     <meta name="0a25db88f7050a28ffed89372d3771d7d0b5676c" content="0a25db88f7050a28ffed89372d3771d7d0b5676c" />
@@ -116,6 +115,10 @@
     <!-- Fonts -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Outfit:wght@500;700;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Outfit:wght@500;700;900&display=swap" /></noscript>
+    <script>
+      // Suppress PWA install prompt — download the native app instead
+      window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); });
+    </script>
   </head>
   <body>
     <div id="root"></div>
