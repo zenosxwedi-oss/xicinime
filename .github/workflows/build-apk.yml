@@ -124,44 +124,20 @@ jobs:
           node << 'JSEOF'
           const fs = require('fs');
           let content = fs.readFileSync('app/build.gradle', 'utf8');
-
-          // Enable minifyEnabled and shrinkResources in release buildType
-          content = content.replace(
-            /buildTypes\s*\{([\s\S]*?)release\s*\{([\s\S]*?)\}/,
-            (match, before, inner) => {
-              let updated = inner;
-              if (!updated.includes('minifyEnabled')) {
-                updated = updated.trimEnd() + '\n                minifyEnabled true\n';
-              } else {
-                updated = updated.replace(/minifyEnabled\s+false/, 'minifyEnabled true');
-              }
-              if (!updated.includes('shrinkResources')) {
-                updated = updated.trimEnd() + '                shrinkResources true\n            ';
-              } else {
-                updated = updated.replace(/shrinkResources\s+false/, 'shrinkResources true');
-              }
-              return 'buildTypes {' + before + 'release {' + updated + '}';
-            }
-          );
-
-          // Add splits for ABI - produce universal APK only (smallest single file)
-          if (!content.includes('splits {')) {
-            const androidIdx = content.lastIndexOf('android {');
-            const closingBrace = content.lastIndexOf('}');
-            const splitsBlock = `
-        splits {
-            abi {
-                enable false
-            }
-        }
-`;
-            // Insert before last closing brace of android block
-            const insertAt = content.lastIndexOf('\n}');
-            content = content.slice(0, insertAt) + splitsBlock + content.slice(insertAt);
+          // Aktifkan minifyEnabled true dan shrinkResources true di release build type
+          content = content.replace(/minifyEnabled\s+false/, 'minifyEnabled true');
+          content = content.replace(/shrinkResources\s+false/, 'shrinkResources true');
+          // Jika belum ada, tambahkan setelah signingConfig di blok release
+          if (!content.includes('minifyEnabled true')) {
+            content = content.replace(
+              /(signingConfig signingConfigs\.release)/,
+              '$1\n                minifyEnabled true\n                shrinkResources true'
+            );
           }
-
           fs.writeFileSync('app/build.gradle', content);
-          console.log('R8 minification and resource shrinking enabled');
+          console.log('Done. minifyEnabled/shrinkResources:');
+          console.log(content.match(/minifyEnabled.*/g));
+          console.log(content.match(/shrinkResources.*/g));
           JSEOF
 
       - name: Decode & place release keystore
