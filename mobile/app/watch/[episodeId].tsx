@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, BackHandler, Platform, Pressable, ScrollView,
+  ActivityIndicator, Alert, BackHandler, Platform, Pressable,
   StyleSheet, Text, View,
 } from 'react-native';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
@@ -19,50 +19,53 @@ const ADMOB_BANNER_ID = __DEV__
   ? TestIds.BANNER
   : 'ca-app-pub-3848627834535677/5316005468';
 
-// Injected JS: hide ads/popups/overlay on the streaming site for cleaner playback
+// Injected JS: sembunyikan popup/overlay iklan di website agar nonton lebih nyaman.
+// Observer disconnect setelah 20 detik untuk menghindari CPU drain.
 const INJECT_JS = `
 (function() {
+  var SAFE_SELECTORS = [
+    '[id*="popup"]','[class*="popup"]',
+    '[id*="overlay"]','[class*="overlay"]',
+    '[id*="modal"]','[class*="modal"]',
+    '[class*="banner-ad"]','[class*="adsbygoogle"]',
+    '[class*="iklan"]','[id*="iklan"]',
+    'iframe[src*="doubleclick"]',
+    'iframe[src*="googlesyndication"]',
+  ];
+  var PLAYER_ROOTS = ['video', '.video-js', '#player', '#plyr', '[data-plyr]'];
+
+  function isInsidePlayer(el) {
+    return PLAYER_ROOTS.some(function(s) {
+      try { return !!el.closest(s); } catch(e) { return false; }
+    });
+  }
+
   function clean() {
-    // Sembunyikan overlay, popup, dan elemen iklan yang menutupi video
-    var selectors = [
-      '[id*="popup"]','[class*="popup"]',
-      '[id*="overlay"]','[class*="overlay"]',
-      '[id*="modal"]','[class*="modal"]',
-      '[id*="ads"]','[class*="ads"]',
-      '[id*="ad-"]','[class*="ad-"]',
-      '[class*="banner-ad"]','[class*="adsbygoogle"]',
-      '[class*="iklan"]','[id*="iklan"]',
-      '.fixed[style*="z-index"]',
-      'iframe[src*="doubleclick"]',
-      'iframe[src*="googlesyndication"]',
-    ];
-    selectors.forEach(function(s) {
+    SAFE_SELECTORS.forEach(function(s) {
       try {
         document.querySelectorAll(s).forEach(function(el) {
-          if (!el.closest('video') && !el.querySelector('video') && !el.closest('.video-js') && !el.closest('#player')) {
-            el.style.display = 'none';
+          if (!isInsidePlayer(el) && !el.querySelector('video')) {
+            el.style.setProperty('display', 'none', 'important');
           }
         });
       } catch(e) {}
     });
-    // Tutup tombol close popup jika ada
-    var closeBtns = document.querySelectorAll('[class*="close"],[id*="close"],[aria-label="close"],[aria-label="Close"]');
-    closeBtns.forEach(function(btn) {
-      try { btn.click(); } catch(e) {}
-    });
   }
+
   clean();
-  // Jalankan setiap 1.5 detik selama 15 detik untuk menangkap popup lambat
-  var count = 0;
-  var interval = setInterval(function() {
+
+  // Jalankan interval singkat (10x setiap 1.5 detik = 15 detik total)
+  var runs = 0;
+  var iv = setInterval(function() {
     clean();
-    count++;
-    if (count >= 10) clearInterval(interval);
+    runs++;
+    if (runs >= 10) clearInterval(iv);
   }, 1500);
 
-  // Observer untuk konten dinamis
+  // Observer dengan auto-disconnect setelah 20 detik
   var observer = new MutationObserver(function() { clean(); });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: false });
+  setTimeout(function() { observer.disconnect(); }, 20000);
 })();
 true;
 `;
@@ -159,7 +162,6 @@ export default function WatchScreen() {
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => {
             setLoading(false);
-            // Inject cleanup script setelah halaman selesai dimuat
             webRef.current?.injectJavaScript(INJECT_JS);
           }}
           onNavigationStateChange={s => setCanGoBack(s.canGoBack)}
@@ -169,7 +171,6 @@ export default function WatchScreen() {
           mediaPlaybackRequiresUserAction={false}
           allowsFullscreenVideo
           setSupportMultipleWindows={false}
-          mixedContentMode="always"
           userAgent="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
         />
       </View>
