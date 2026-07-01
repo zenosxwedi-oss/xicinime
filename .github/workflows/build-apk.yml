@@ -49,7 +49,6 @@ jobs:
           const path = os.homedir() + '/.gradle/init.d/kotlin-compat-fix.gradle';
           fs.writeFileSync(path, initScript);
           console.log('Created:', path);
-          console.log(initScript);
           JSEOF
 
       - name: Install Expo CLI & dependencies
@@ -96,7 +95,6 @@ jobs:
           node << 'JSEOF'
           const fs = require('fs');
           const content = fs.readFileSync('build.gradle', 'utf8');
-          console.log('build.gradle content:\n' + content);
           const insertBefore = 'apply plugin: "expo-root-project"';
           const patch = [
             '// CI fix: configureEach for Kotlin metadata skip (must be before expo/rn plugins)',
@@ -118,9 +116,52 @@ jobs:
             fs.appendFileSync('build.gradle', '\n' + patch);
             console.log('Warning: expo-root-project not found, appended to end');
           }
-          console.log('\n=== Last 20 lines of patched build.gradle ===');
-          const lines = fs.readFileSync('build.gradle', 'utf8').split('\n');
-          console.log(lines.slice(-20).join('\n'));
+          JSEOF
+
+      - name: Enable R8 minification & resource shrinking
+        working-directory: mobile/android
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          let content = fs.readFileSync('app/build.gradle', 'utf8');
+
+          // Enable minifyEnabled and shrinkResources in release buildType
+          content = content.replace(
+            /buildTypes\s*\{([\s\S]*?)release\s*\{([\s\S]*?)\}/,
+            (match, before, inner) => {
+              let updated = inner;
+              if (!updated.includes('minifyEnabled')) {
+                updated = updated.trimEnd() + '\n                minifyEnabled true\n';
+              } else {
+                updated = updated.replace(/minifyEnabled\s+false/, 'minifyEnabled true');
+              }
+              if (!updated.includes('shrinkResources')) {
+                updated = updated.trimEnd() + '                shrinkResources true\n            ';
+              } else {
+                updated = updated.replace(/shrinkResources\s+false/, 'shrinkResources true');
+              }
+              return 'buildTypes {' + before + 'release {' + updated + '}';
+            }
+          );
+
+          // Add splits for ABI - produce universal APK only (smallest single file)
+          if (!content.includes('splits {')) {
+            const androidIdx = content.lastIndexOf('android {');
+            const closingBrace = content.lastIndexOf('}');
+            const splitsBlock = `
+        splits {
+            abi {
+                enable false
+            }
+        }
+`;
+            // Insert before last closing brace of android block
+            const insertAt = content.lastIndexOf('\n}');
+            content = content.slice(0, insertAt) + splitsBlock + content.slice(insertAt);
+          }
+
+          fs.writeFileSync('app/build.gradle', content);
+          console.log('R8 minification and resource shrinking enabled');
           JSEOF
 
       - name: Decode & place release keystore
@@ -134,7 +175,6 @@ jobs:
           node << 'JSEOF'
           const fs = require('fs');
           let content = fs.readFileSync('app/build.gradle', 'utf8');
-          console.log('Original app/build.gradle length:', content.length);
 
           if (!content.includes('release.keystore')) {
             const signingIdx = content.indexOf('signingConfigs {');
@@ -154,11 +194,8 @@ jobs:
                   "                  keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''\n" +
                   '              }';
                 content = content.slice(0, i) + releaseBlock + content.slice(i);
-                console.log('Inserted release signingConfig block');
               }
             }
-          } else {
-            console.log('release.keystore already referenced');
           }
 
           const buildTypesIdx = content.indexOf('buildTypes {');
@@ -174,12 +211,11 @@ jobs:
               const blockStr = content.slice(releaseTypeIdx, i);
               const fixedBlock = blockStr.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release');
               content = content.slice(0, releaseTypeIdx) + fixedBlock + content.slice(i);
-              if (blockStr !== fixedBlock) console.log('Updated release buildType to signingConfigs.release');
             }
           }
 
           fs.writeFileSync('app/build.gradle', content);
-          console.log('Done. New length:', content.length);
+          console.log('Signing config injected');
           JSEOF
 
       - name: Make gradlew executable
@@ -192,7 +228,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v4
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v5
           restore-keys: gradle-
 
       - name: Build Release APK
@@ -211,7 +247,7 @@ jobs:
           echo "Found: $APK"
           ls -lh "$APK"
           SIZE_MB=$(du -m "$APK" | cut -f1)
-          VERSION="v1.0.${{ github.run_number }}"
+          VERSION="v1.1.${{ github.run_number }}"
           NEW_NAME="xicinime-${VERSION}.apk"
           cp "$APK" "$NEW_NAME"
           echo "apk_path=$NEW_NAME" >> $GITHUB_OUTPUT
@@ -228,20 +264,20 @@ jobs:
 
             **Ukuran:** ~${{ steps.apk.outputs.size_mb }} MB
 
-            ### Download
-            Klik file `.apk` di bawah untuk download langsung.
+            ### ⬇️ Download
+            Klik file `.apk` di bawah untuk download langsung — **gratis, bebas iklan Play Store**.
 
-            ### Cara Install
-            1. Download file APK di bawah
-            2. Buka file manager - tap file APK
-            3. Jika muncul "Sumber tidak dikenal" - aktifkan izin
-            4. Tap Install - buka Xicinime
+            ### Cara Install (30 detik)
+            1. Download file `.apk` di bawah
+            2. Buka file manager → tap file APK
+            3. Jika muncul **"Sumber tidak dikenal"** → aktifkan izin install dari sumber ini
+            4. Tap **Install** → buka Xicinime dan nikmati!
 
-            > Peringatan Google Play Protect adalah normal untuk semua APK luar Play Store.
-            > Tap "Tetap Install" untuk melanjutkan.
+            > ⚠️ Peringatan Google Play Protect adalah **normal** untuk semua APK di luar Play Store.
+            > Tap **"Tetap Install"** untuk melanjutkan.
 
             ---
-            Built automatically dari branch main via GitHub Actions.
+            ✅ Build otomatis dari branch `main` via GitHub Actions.
           files: ${{ steps.apk.outputs.apk_path }}
           draft: false
           prerelease: false

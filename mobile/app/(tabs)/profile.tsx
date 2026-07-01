@@ -7,7 +7,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing } from '@/constants/Theme';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 interface MenuItemProps {
   icon: any;
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
             icon="download"
             label="Download APK Terbaru"
             sub="Dapatkan versi terbaru"
-            onPress={() => Linking.openURL('https://xicinime.my.id/download')}
+            onPress={() => Linking.openURL('https://github.com/zenosxwedi-oss/xicinime/releases/latest')}
           />
           <MenuItem
             icon="message-circle"

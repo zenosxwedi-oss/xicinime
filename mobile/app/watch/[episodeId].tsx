@@ -19,6 +19,54 @@ const ADMOB_BANNER_ID = __DEV__
   ? TestIds.BANNER
   : 'ca-app-pub-3848627834535677/5316005468';
 
+// Injected JS: hide ads/popups/overlay on the streaming site for cleaner playback
+const INJECT_JS = `
+(function() {
+  function clean() {
+    // Sembunyikan overlay, popup, dan elemen iklan yang menutupi video
+    var selectors = [
+      '[id*="popup"]','[class*="popup"]',
+      '[id*="overlay"]','[class*="overlay"]',
+      '[id*="modal"]','[class*="modal"]',
+      '[id*="ads"]','[class*="ads"]',
+      '[id*="ad-"]','[class*="ad-"]',
+      '[class*="banner-ad"]','[class*="adsbygoogle"]',
+      '[class*="iklan"]','[id*="iklan"]',
+      '.fixed[style*="z-index"]',
+      'iframe[src*="doubleclick"]',
+      'iframe[src*="googlesyndication"]',
+    ];
+    selectors.forEach(function(s) {
+      try {
+        document.querySelectorAll(s).forEach(function(el) {
+          if (!el.closest('video') && !el.querySelector('video') && !el.closest('.video-js') && !el.closest('#player')) {
+            el.style.display = 'none';
+          }
+        });
+      } catch(e) {}
+    });
+    // Tutup tombol close popup jika ada
+    var closeBtns = document.querySelectorAll('[class*="close"],[id*="close"],[aria-label="close"],[aria-label="Close"]');
+    closeBtns.forEach(function(btn) {
+      try { btn.click(); } catch(e) {}
+    });
+  }
+  clean();
+  // Jalankan setiap 1.5 detik selama 15 detik untuk menangkap popup lambat
+  var count = 0;
+  var interval = setInterval(function() {
+    clean();
+    count++;
+    if (count >= 10) clearInterval(interval);
+  }, 1500);
+
+  // Observer untuk konten dinamis
+  var observer = new MutationObserver(function() { clean(); });
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
+true;
+`;
+
 export default function WatchScreen() {
   const { episodeId } = useLocalSearchParams<{ episodeId: string }>();
   const router = useRouter();
@@ -109,7 +157,11 @@ export default function WatchScreen() {
           source={{ uri: `${SITE_WATCH}${episodeId}` }}
           style={styles.webview}
           onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
+          onLoadEnd={() => {
+            setLoading(false);
+            // Inject cleanup script setelah halaman selesai dimuat
+            webRef.current?.injectJavaScript(INJECT_JS);
+          }}
           onNavigationStateChange={s => setCanGoBack(s.canGoBack)}
           javaScriptEnabled
           domStorageEnabled
@@ -117,11 +169,12 @@ export default function WatchScreen() {
           mediaPlaybackRequiresUserAction={false}
           allowsFullscreenVideo
           setSupportMultipleWindows={false}
+          mixedContentMode="always"
           userAgent="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
         />
       </View>
 
-      {/* AdMob Banner between player and nav */}
+      {/* AdMob Banner */}
       <View style={styles.adWrap}>
         <BannerAd
           unitId={ADMOB_BANNER_ID}

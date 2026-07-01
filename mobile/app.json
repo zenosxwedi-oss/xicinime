@@ -2,7 +2,7 @@
   "expo": {
     "name": "Xicinime",
     "slug": "xicinime-mobile",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "xicinime",
@@ -30,7 +30,8 @@
       },
       "permissions": [],
       "userInterfaceStyle": "dark",
-      "allowBackup": false
+      "allowBackup": false,
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/images/icon.png"
