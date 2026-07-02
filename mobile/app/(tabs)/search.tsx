@@ -1,47 +1,62 @@
 import { Feather } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useRef, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Pressable, StyleSheet, Text,
-  TextInput, View,
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing } from '@/constants/Theme';
-import { api } from '@/services/api';
+import AnimeCard from '@/components/AnimeCard';
+import { useColors } from '@/hooks/useColors';
+import { anime, donghua, type AnimeItem } from '@/services/api';
 
-interface Result {
-  animeId?: string;
-  slug?: string;
-  title: string;
-  poster?: string;
-  poster_url?: string;
-  status?: string;
-  type?: string;
-  episodes?: string | number;
-}
+type Tab = 'anime' | 'donghua';
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colors = useColors();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Result[]>([]);
+  const [tab, setTab] = useState<Tab>('anime');
+  const [results, setResults] = useState<AnimeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const controllerRef = useRef<AbortController | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const ctrl = useRef<AbortController | null>(null);
+  const webTop = Platform.OS === 'web' ? 67 : 0;
 
-  const search = useCallback(async (q: string) => {
+  const doSearch = useCallback(async (q: string, t: Tab) => {
     if (!q.trim()) { setResults([]); setSearched(false); return; }
-    controllerRef.current?.abort();
-    controllerRef.current = new AbortController();
+    ctrl.current?.abort();
+    ctrl.current = new AbortController();
     setLoading(true);
     setSearched(true);
     try {
-      const res = await api.search(q, controllerRef.current.signal);
-      const items = res?.data?.animeList ?? res?.data ?? [];
-      setResults(Array.isArray(items) ? items : []);
+      let res: any;
+      if (t === 'anime') {
+        res = await anime.search(q, ctrl.current.signal);
+        const items = res?.data?.animeList ?? res?.data ?? res?.animeList ?? [];
+        setResults(Array.isArray(items) ? items : []);
+      } else {
+        // Donghua search not always available, try anyway
+        try {
+          const dr = await fetch(`https://www.sankavollerei.web.id/anime/donghua/search/${encodeURIComponent(q)}`, {
+            headers: { 'User-Agent': 'XiciNime-App/1.0' },
+            signal: ctrl.current.signal,
+          });
+          const dj = await dr.json();
+          const di = dj?.data?.animeList ?? dj?.data ?? dj?.animeList ?? [];
+          setResults(Array.isArray(di) ? di : []);
+        } catch {
+          setResults([]);
+        }
+      }
     } catch (e: any) {
       if (e?.name !== 'AbortError') setResults([]);
     } finally {
@@ -51,87 +66,93 @@ export default function SearchScreen() {
 
   const handleChange = (t: string) => {
     setQuery(t);
-    if (t.length >= 2) search(t);
+    if (t.length >= 2) doSearch(t, tab);
     else { setResults([]); setSearched(false); }
   };
 
-  const handleSubmit = () => search(query);
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    if (query.length >= 2) doSearch(query, t);
+  };
 
-  const renderItem = ({ item }: { item: Result }) => {
-    const id = item.slug || item.animeId || '';
-    return (
-      <Pressable style={({ pressed }) => [styles.resultCard, pressed && { opacity: 0.75 }]} onPress={() => router.push(`/anime/${id}` as any)}>
-        <Image source={{ uri: item.poster || item.poster_url }} style={styles.thumb} contentFit="cover" placeholder={undefined} />
-        <View style={styles.resultInfo}>
-          <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
-          <View style={styles.pills}>
-            {item.type && <View style={styles.pill}><Text style={styles.pillText}>{item.type}</Text></View>}
-            {item.status && <View style={[styles.pill, { backgroundColor: item.status?.toLowerCase() === 'ongoing' ? Colors.primary : Colors.success }]}><Text style={styles.pillText}>{item.status}</Text></View>}
-            {item.episodes != null && <Text style={styles.epsText}>{item.episodes} eps</Text>}
-          </View>
-        </View>
-        <Feather name="chevron-right" size={18} color={Colors.muted} />
-      </Pressable>
-    );
+  const goItem = (item: AnimeItem) => {
+    const slug = item.animeId ?? item.slug;
+    if (!slug) return;
+    if (tab === 'donghua') router.push(`/donghua/${slug}` as any);
+    else router.push(`/anime/${slug}` as any);
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <StatusBar style="light" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Cari Anime</Text>
+      <View style={[styles.topBar, { paddingTop: insets.top + webTop + 12 }]}>
+        <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Feather name="search" size={18} color={colors.mutedForeground} />
+          <TextInput
+            style={[styles.input, { color: colors.foreground }]}
+            placeholder={tab === 'anime' ? 'Cari anime...' : 'Cari donghua...'}
+            placeholderTextColor={colors.mutedForeground}
+            value={query}
+            onChangeText={handleChange}
+            onSubmitEditing={() => doSearch(query, tab)}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {query.length > 0 && (
+            <Pressable onPress={() => { setQuery(''); setResults([]); setSearched(false); }}>
+              <Feather name="x" size={16} color={colors.mutedForeground} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Tabs */}
+        <View style={[styles.tabs, { backgroundColor: colors.card }]}>
+          {(['anime', 'donghua'] as Tab[]).map(t => (
+            <Pressable
+              key={t}
+              style={[styles.tabBtn, tab === t && { backgroundColor: colors.primary }]}
+              onPress={() => switchTab(t)}
+            >
+              <Text style={[styles.tabText, { color: tab === t ? '#fff' : colors.mutedForeground }]}>
+                {t === 'anime' ? 'Anime' : 'Donghua'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.inputWrap}>
-        <Feather name="search" size={18} color={Colors.subtext} style={styles.inputIcon} />
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          placeholder="Ketik judul anime..."
-          placeholderTextColor={Colors.muted}
-          value={query}
-          onChangeText={handleChange}
-          onSubmitEditing={handleSubmit}
-          returnKeyType="search"
-          autoFocus
-          selectionColor={Colors.primary}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => { setQuery(''); setResults([]); setSearched(false); }}>
-            <Feather name="x" size={16} color={Colors.subtext} />
-          </Pressable>
-        )}
-      </View>
-
-      {loading && (
+      {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.centerText}>Mencari...</Text>
+          <ActivityIndicator color={colors.primary} size="large" />
         </View>
-      )}
-
-      {!loading && searched && results.length === 0 && (
+      ) : !searched ? (
         <View style={styles.center}>
-          <Feather name="search" size={48} color={Colors.muted} />
-          <Text style={styles.centerText}>Tidak ada hasil untuk "{query}"</Text>
+          <Feather name="search" size={48} color={colors.border} />
+          <Text style={[styles.hintText, { color: colors.mutedForeground }]}>Cari anime atau donghua favoritmu</Text>
         </View>
-      )}
-
-      {!loading && !searched && (
+      ) : results.length === 0 ? (
         <View style={styles.center}>
-          <Feather name="tv" size={48} color={Colors.muted} />
-          <Text style={styles.centerText}>Cari anime favoritmu</Text>
+          <Feather name="frown" size={48} color={colors.border} />
+          <Text style={[styles.hintText, { color: colors.mutedForeground }]}>Tidak ada hasil untuk "{query}"</Text>
         </View>
-      )}
-
-      {!loading && results.length > 0 && (
+      ) : (
         <FlatList
           data={results}
-          keyExtractor={i => i.animeId || i.slug || i.title}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          numColumns={3}
+          keyExtractor={(item, i) => `sr-${item.animeId ?? item.slug ?? i}`}
+          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 84 : 80) }]}
+          columnWrapperStyle={styles.row}
+          renderItem={({ item }) => (
+            <AnimeCard
+              title={item.title}
+              poster={item.poster ?? item.poster_url}
+              episode={item.current_episode}
+              status={item.status}
+              width={110}
+              onPress={() => goItem(item)}
+            />
+          )}
         />
       )}
     </View>
@@ -139,29 +160,33 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  header: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
-  headerTitle: { color: Colors.text, fontSize: 22, fontWeight: '800' },
-  inputWrap: {
-    flexDirection: 'row', alignItems: 'center', marginHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface2, borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.md, marginBottom: Spacing.lg,
-    borderWidth: 1, borderColor: Colors.border,
+  root: { flex: 1 },
+  topBar: { paddingHorizontal: 16, paddingBottom: 12, gap: 12 },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    height: 46,
+    gap: 8,
   },
-  inputIcon: { marginRight: 8 },
-  input: { flex: 1, color: Colors.text, fontSize: 15, paddingVertical: 12 },
+  input: { flex: 1, fontSize: 15 },
+  tabs: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    padding: 3,
+    gap: 3,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  tabText: { fontSize: 13, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  centerText: { color: Colors.subtext, fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
-  resultCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  thumb: { width: 56, height: 80, borderRadius: Radius.sm, backgroundColor: Colors.surface2 },
-  resultInfo: { flex: 1 },
-  resultTitle: { color: Colors.text, fontSize: 14, fontWeight: '600', lineHeight: 20 },
-  pills: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
-  pill: { backgroundColor: Colors.primary, paddingHorizontal: 7, paddingVertical: 2, borderRadius: Radius.xs },
-  pillText: { color: Colors.white, fontSize: 10, fontWeight: '700' },
-  epsText: { color: Colors.subtext, fontSize: 11 },
+  hintText: { fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
+  grid: { paddingHorizontal: 16, paddingTop: 16 },
+  row: { gap: 12, marginBottom: 16 },
 });

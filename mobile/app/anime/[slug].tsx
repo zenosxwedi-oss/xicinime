@@ -5,156 +5,155 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View,
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing } from '@/constants/Theme';
-import { api } from '@/services/api';
+import { useColors } from '@/hooks/useColors';
+import { anime } from '@/services/api';
 
-const ADMOB_BANNER_ID = __DEV__
-  ? TestIds.BANNER
-  : 'ca-app-pub-3848627834535677/3573045936';
+interface AnimeDetail {
+  title?: string;
+  poster?: string;
+  poster_url?: string;
+  status?: string;
+  type?: string;
+  episodes?: number | string;
+  score?: string | number;
+  synopsis?: string;
+  genres?: { name: string; slug: string }[];
+  genreList?: { name: string; slug: string }[];
+  episodeList?: { title: string; episodeId?: string; slug?: string; episode?: string }[];
+}
 
 export default function AnimeDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [detail, setDetail] = useState<any>(null);
+  const colors = useColors();
+  const [detail, setDetail] = useState<AnimeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
-    api.animeDetail(slug)
+    setError('');
+    anime.detail(slug as string)
       .then(res => setDetail(res?.data ?? res))
       .catch(() => setError('Gagal memuat detail anime'))
       .finally(() => setLoading(false));
   }, [slug]);
 
   if (loading) return (
-    <View style={[styles.center, { backgroundColor: Colors.bg, paddingTop: insets.top }]}>
-      <ActivityIndicator size="large" color={Colors.primary} />
+    <View style={[styles.center, { backgroundColor: colors.bg }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 
   if (error || !detail) return (
-    <View style={[styles.center, { backgroundColor: Colors.bg, paddingTop: insets.top }]}>
-      <Feather name="alert-circle" size={48} color={Colors.error} />
-      <Text style={styles.errorText}>{error || 'Anime tidak ditemukan'}</Text>
-      <Pressable style={styles.backBtn} onPress={() => router.back()}>
-        <Text style={styles.backBtnText}>← Kembali</Text>
+    <View style={[styles.center, { backgroundColor: colors.bg }]}>
+      <Feather name="alert-circle" size={48} color={colors.error} />
+      <Text style={[styles.errorText, { color: colors.foreground }]}>{error || 'Anime tidak ditemukan'}</Text>
+      <Pressable style={[styles.backBtn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+        <Text style={styles.backBtnText}>Kembali</Text>
       </Pressable>
     </View>
   );
 
-  const episodes: any[] = detail.episodeList ?? detail.episodes ?? [];
-  const genres: any[] = detail.genreList ?? detail.genres ?? [];
-  const firstEp = episodes[0];
-  const lastEp = episodes[episodes.length - 1];
+  const episodes = detail.episodeList ?? [];
+  const genres = detail.genreList ?? detail.genres ?? [];
+
+  const watchEp = (ep: typeof episodes[0]) => {
+    const id = ep.episodeId ?? ep.slug;
+    if (id) router.push(`/watch/${id}` as any);
+  };
 
   return (
-    <View style={[styles.root, { backgroundColor: Colors.bg }]}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
         {/* Hero */}
         <View style={styles.hero}>
-          <Image source={{ uri: detail.poster || detail.poster_url }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={10} />
-          <LinearGradient colors={['rgba(8,8,15,0.3)', Colors.bg]} style={StyleSheet.absoluteFill} />
-          <View style={[styles.heroInner, { paddingTop: insets.top + 8 }]}>
-            <Pressable onPress={() => router.back()} style={styles.backIcon}>
-              <Feather name="arrow-left" size={20} color={Colors.text} />
+          <Image source={{ uri: detail.poster ?? detail.poster_url }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={12} />
+          <LinearGradient colors={['rgba(8,8,15,0.2)', 'rgba(8,8,15,0.65)', colors.bg]} style={StyleSheet.absoluteFill} />
+          <View style={[styles.heroTop, { paddingTop: insets.top + 12 }]}>
+            <Pressable style={[styles.backIcon, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => router.back()}>
+              <Feather name="arrow-left" size={20} color="#fff" />
             </Pressable>
           </View>
           <View style={styles.heroBottom}>
-            <Image source={{ uri: detail.poster || detail.poster_url }} style={styles.poster} contentFit="cover" />
+            <Image source={{ uri: detail.poster ?? detail.poster_url }} style={[styles.poster, { borderRadius: colors.radius }]} contentFit="cover" />
             <View style={styles.heroMeta}>
-              <Text style={styles.title} numberOfLines={3}>{detail.title}</Text>
+              <Text style={[styles.animeTitle, { color: colors.foreground }]} numberOfLines={3}>{detail.title}</Text>
               <View style={styles.metaRow}>
-                {detail.status && <View style={[styles.badge, { backgroundColor: detail.status?.toLowerCase() === 'ongoing' ? Colors.primary : Colors.success }]}><Text style={styles.badgeText}>{detail.status}</Text></View>}
-                {detail.type && <View style={styles.badge}><Text style={styles.badgeText}>{detail.type}</Text></View>}
+                {detail.status && (
+                  <View style={[styles.pill, { backgroundColor: detail.status.toLowerCase() === 'ongoing' ? colors.primary : colors.success }]}>
+                    <Text style={styles.pillText}>{detail.status}</Text>
+                  </View>
+                )}
+                {detail.type && (
+                  <View style={[styles.pill, { backgroundColor: colors.secondary }]}>
+                    <Text style={[styles.pillText, { color: colors.mutedForeground }]}>{detail.type}</Text>
+                  </View>
+                )}
               </View>
-              {detail.episodes != null && <Text style={styles.metaText}>🎬 {detail.episodes} Episode</Text>}
-              {detail.score && <Text style={styles.metaText}>⭐ {detail.score}</Text>}
-              {detail.studio && <Text style={styles.metaText} numberOfLines={1}>🎬 {detail.studio}</Text>}
+              {detail.score && <Text style={[styles.score, { color: colors.warning }]}>★ {detail.score}</Text>}
+              {detail.episodes && <Text style={[styles.epCount, { color: colors.mutedForeground }]}>{detail.episodes} Episode</Text>}
             </View>
           </View>
         </View>
 
-        {/* Play buttons */}
-        {episodes.length > 0 && (
-          <View style={styles.playRow}>
-            {firstEp && (
-              <Pressable
-                style={[styles.playBtn, { flex: 1 }]}
-                onPress={() => router.push(`/watch/${firstEp.slug || firstEp.episodeId}` as any)}
-              >
-                <Feather name="play" size={14} color={Colors.white} />
-                <Text style={styles.playBtnText}>Episode 1</Text>
-              </Pressable>
-            )}
-            {lastEp && lastEp !== firstEp && (
-              <Pressable
-                style={[styles.playBtnOutline, { flex: 1 }]}
-                onPress={() => router.push(`/watch/${lastEp.slug || lastEp.episodeId}` as any)}
-              >
-                <Feather name="skip-forward" size={14} color={Colors.primary} />
-                <Text style={styles.playBtnOutlineText}>Terbaru</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        {/* AdMob Banner */}
-        <View style={styles.adWrap}>
-          <BannerAd
-            unitId={ADMOB_BANNER_ID}
-            size={BannerAdSize.BANNER}
-            requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-          />
-        </View>
-
         {/* Genres */}
         {genres.length > 0 && (
-          <View style={styles.genreRow}>
-            {genres.map((g: any) => (
-              <View key={g.title || g} style={styles.genreBadge}>
-                <Text style={styles.genreText}>{g.title || g}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genreList}>
+            {genres.map((g, i) => (
+              <View key={i} style={[styles.genrePill, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.genreText, { color: colors.accent }]}>{g.name ?? g}</Text>
               </View>
             ))}
-          </View>
+          </ScrollView>
         )}
 
         {/* Synopsis */}
         {detail.synopsis && (
           <View style={styles.synopsisWrap}>
-            <Text style={styles.synopsisTitle}>Sinopsis</Text>
-            <Text style={styles.synopsis}>{detail.synopsis}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Sinopsis</Text>
+            <Text style={[styles.synopsis, { color: colors.mutedForeground }]}>{detail.synopsis}</Text>
           </View>
         )}
 
-        {/* Episodes */}
+        {/* Episode list */}
         {episodes.length > 0 && (
-          <View style={{ marginTop: Spacing.lg }}>
-            <Text style={styles.epsHeader}>Daftar Episode ({episodes.length})</Text>
-            {episodes.slice(0, 50).map((ep: any) => (
-              <Pressable
-                key={ep.slug || ep.episodeId || ep.title}
-                style={({ pressed }) => [styles.epItem, pressed && { opacity: 0.7 }]}
-                onPress={() => router.push(`/watch/${ep.slug || ep.episodeId}` as any)}
-              >
-                <View style={styles.epIcon}>
-                  <Feather name="play" size={14} color={Colors.primary} />
-                </View>
-                <Text style={styles.epText} numberOfLines={1}>{ep.title || ep.episode}</Text>
-                <Feather name="chevron-right" size={14} color={Colors.muted} />
-              </Pressable>
-            ))}
+          <View style={styles.epWrap}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Episode ({episodes.length})</Text>
+            <FlatList
+              data={episodes}
+              scrollEnabled={false}
+              keyExtractor={(ep, i) => ep.episodeId ?? ep.slug ?? String(i)}
+              renderItem={({ item: ep }) => (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.epItem,
+                    { backgroundColor: pressed ? colors.secondary : colors.card, borderColor: colors.border }
+                  ]}
+                  onPress={() => watchEp(ep)}
+                >
+                  <Feather name="play-circle" size={20} color={colors.primary} />
+                  <Text style={[styles.epTitle, { color: colors.foreground }]} numberOfLines={1}>
+                    {ep.title ?? ep.episode ?? `Episode`}
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            />
           </View>
         )}
-
-        <View style={{ height: insets.bottom + 20 }} />
       </ScrollView>
     </View>
   );
@@ -162,40 +161,37 @@ export default function AnimeDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  errorText: { color: Colors.subtext, fontSize: 15, textAlign: 'center' },
-  backBtn: { backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: Radius.full },
-  backBtnText: { color: Colors.white, fontWeight: '700' },
-  hero: { minHeight: 260, justifyContent: 'flex-end' },
-  heroInner: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg },
-  backIcon: { width: 38, height: 38, borderRadius: Radius.full, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
-  heroBottom: { flexDirection: 'row', gap: 14, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg, alignItems: 'flex-end' },
-  poster: { width: 100, height: 145, borderRadius: Radius.md, backgroundColor: Colors.surface2 },
-  heroMeta: { flex: 1 },
-  title: { color: Colors.white, fontSize: 18, fontWeight: '800', lineHeight: 24, marginBottom: 8 },
-  metaRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 6 },
-  badge: { backgroundColor: Colors.primary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.xs },
-  badgeText: { color: Colors.white, fontSize: 10, fontWeight: '700' },
-  metaText: { color: Colors.subtext, fontSize: 11, marginBottom: 3 },
-  playRow: { flexDirection: 'row', gap: 10, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-  playBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.primary, paddingVertical: 11, borderRadius: Radius.md },
-  playBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
-  playBtnOutline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: 'transparent', paddingVertical: 11, borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.primary },
-  playBtnOutlineText: { color: Colors.primary, fontWeight: '700', fontSize: 13 },
-  adWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8, backgroundColor: Colors.surface, minHeight: 60, marginVertical: 8 },
-  genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: Spacing.lg, marginTop: Spacing.md },
-  genreBadge: { backgroundColor: Colors.surface2, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full },
-  genreText: { color: Colors.subtext, fontSize: 11, fontWeight: '600' },
-  synopsisWrap: { paddingHorizontal: Spacing.lg, marginTop: Spacing.lg },
-  synopsisTitle: { color: Colors.text, fontSize: 15, fontWeight: '700', marginBottom: 8 },
-  synopsis: { color: Colors.subtext, fontSize: 13, lineHeight: 20 },
-  epsHeader: { color: Colors.text, fontSize: 15, fontWeight: '700', paddingHorizontal: Spacing.lg, marginBottom: 8 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  errorText: { fontSize: 16, textAlign: 'center', paddingHorizontal: 32 },
+  backBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
+  backBtnText: { color: '#fff', fontWeight: '700' },
+  hero: { height: 320, justifyContent: 'flex-end' },
+  heroTop: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16 },
+  backIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  heroBottom: { flexDirection: 'row', padding: 16, gap: 14, alignItems: 'flex-end' },
+  poster: { width: 100, height: 145 },
+  heroMeta: { flex: 1, gap: 6 },
+  animeTitle: { fontSize: 18, fontWeight: '800', lineHeight: 24 },
+  metaRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  pillText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  score: { fontSize: 14, fontWeight: '700' },
+  epCount: { fontSize: 12 },
+  genreList: { paddingHorizontal: 16, gap: 8, marginBottom: 20, marginTop: 8 },
+  genrePill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  genreText: { fontSize: 12, fontWeight: '600' },
+  synopsisWrap: { paddingHorizontal: 16, marginBottom: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', marginBottom: 10 },
+  synopsis: { fontSize: 13, lineHeight: 20 },
+  epWrap: { paddingHorizontal: 16 },
   epItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: Spacing.lg, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 12,
   },
-  epIcon: { width: 30, height: 30, borderRadius: Radius.xs, backgroundColor: 'rgba(147,51,234,0.15)', alignItems: 'center', justifyContent: 'center' },
-  epText: { flex: 1, color: Colors.text, fontSize: 13 },
-  success: { backgroundColor: '#22c55e' },
+  epTitle: { flex: 1, fontSize: 13, fontWeight: '500' },
 });

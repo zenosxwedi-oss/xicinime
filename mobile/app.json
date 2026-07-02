@@ -9,8 +9,8 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "cover",
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#08080f"
     },
     "ios": {
@@ -26,12 +26,12 @@
       "package": "id.xicinime.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#0d0d1a"
+        "backgroundColor": "#08080f"
       },
       "permissions": [],
       "userInterfaceStyle": "dark",
       "allowBackup": false,
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -44,19 +44,11 @@
         }
       ],
       "expo-font",
-      "expo-web-browser",
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-3848627834535677~3573045936",
-          "iosAppId": "ca-app-pub-3848627834535677~3573045936",
-          "delayAppMeasurementInit": false,
-          "userTrackingUsageDescription": "Iklan ini membantu mendukung Xicinime agar bisa terus update."
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "reactCompiler": true
     }
   }
 }

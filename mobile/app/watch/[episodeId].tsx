@@ -1,242 +1,299 @@
 import { Feather } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, BackHandler, Platform, Pressable,
-  StyleSheet, Text, View,
+  ActivityIndicator,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
-import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, Spacing } from '@/constants/Theme';
-import { api } from '@/services/api';
-import { addToWatchHistory } from '@/utils/watchHistory';
-import { showRewardedAd } from '@/utils/admob';
+import { useColors } from '@/hooks/useColors';
+import { anime } from '@/services/api';
+import { addHistory } from '@/utils/watchHistory';
 
-const SITE_WATCH = 'https://xicinime.my.id/watch/';
-const ADMOB_BANNER_ID = __DEV__
-  ? TestIds.BANNER
-  : 'ca-app-pub-3848627834535677/5316005468';
+interface StreamServer {
+  server?: string;
+  name?: string;
+  url?: string;
+  embed?: string;
+  href?: string;
+}
 
-// Injected JS: sembunyikan popup/overlay iklan di website agar nonton lebih nyaman.
-// Observer disconnect setelah 20 detik untuk menghindari CPU drain.
-const INJECT_JS = `
-(function() {
-  var SAFE_SELECTORS = [
-    '[id*="popup"]','[class*="popup"]',
-    '[id*="overlay"]','[class*="overlay"]',
-    '[id*="modal"]','[class*="modal"]',
-    '[class*="banner-ad"]','[class*="adsbygoogle"]',
-    '[class*="iklan"]','[id*="iklan"]',
-    'iframe[src*="doubleclick"]',
-    'iframe[src*="googlesyndication"]',
-  ];
-  var PLAYER_ROOTS = ['video', '.video-js', '#player', '#plyr', '[data-plyr]'];
-
-  function isInsidePlayer(el) {
-    return PLAYER_ROOTS.some(function(s) {
-      try { return !!el.closest(s); } catch(e) { return false; }
-    });
-  }
-
-  function clean() {
-    SAFE_SELECTORS.forEach(function(s) {
-      try {
-        document.querySelectorAll(s).forEach(function(el) {
-          if (!isInsidePlayer(el) && !el.querySelector('video')) {
-            el.style.setProperty('display', 'none', 'important');
-          }
-        });
-      } catch(e) {}
-    });
-  }
-
-  clean();
-
-  // Jalankan interval singkat (10x setiap 1.5 detik = 15 detik total)
-  var runs = 0;
-  var iv = setInterval(function() {
-    clean();
-    runs++;
-    if (runs >= 10) clearInterval(iv);
-  }, 1500);
-
-  // Observer dengan auto-disconnect setelah 20 detik
-  var observer = new MutationObserver(function() { clean(); });
-  observer.observe(document.body, { childList: true, subtree: false });
-  setTimeout(function() { observer.disconnect(); }, 20000);
-})();
-true;
-`;
+interface EpisodeData {
+  title?: string;
+  animeTitle?: string;
+  poster?: string;
+  streamingUrl?: string;
+  downloadUrl?: string;
+  servers?: StreamServer[];
+  streamServer?: StreamServer[];
+  mirrorEmbed?: StreamServer[];
+  prevEpisode?: string;
+  nextEpisode?: string;
+  animeId?: string;
+  slug?: string;
+}
 
 export default function WatchScreen() {
   const { episodeId } = useLocalSearchParams<{ episodeId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const webRef = useRef<any>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
+  const colors = useColors();
+  const [data, setData] = useState<EpisodeData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [epData, setEpData] = useState<any>(null);
-  const [adLoading, setAdLoading] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (canGoBack && webRef.current) { webRef.current.goBack(); return true; }
-      return false;
-    });
-    return () => handler.remove();
-  }, [canGoBack]);
+  const [error, setError] = useState('');
+  const [selectedServer, setSelectedServer] = useState(0);
 
   useEffect(() => {
     if (!episodeId) return;
-    api.episodeDetail(episodeId)
+    setLoading(true);
+    anime.episode(episodeId as string)
       .then(res => {
         const d = res?.data ?? res;
-        setEpData(d);
-        addToWatchHistory({
-          episodeId,
-          animeId: d?.animeId || d?.animeSlug || episodeId,
-          animeTitle: d?.animeTitle || d?.title || episodeId,
-          episodeTitle: d?.title || episodeId,
-          poster: d?.animePoster || d?.poster || '',
-          provider: 'otakudesu',
-        });
+        setData(d);
+        // Log to watch history
+        if (d) {
+          addHistory({
+            id: episodeId as string,
+            slug: d.animeId ?? d.slug ?? (episodeId as string),
+            title: d.animeTitle ?? d.title ?? 'Unknown',
+            poster: d.poster,
+            episode: d.title,
+            type: 'anime',
+          });
+        }
       })
-      .catch(() => {
-        addToWatchHistory({
-          episodeId,
-          animeId: episodeId,
-          animeTitle: 'Episode',
-          episodeTitle: episodeId,
-          poster: '',
-          provider: 'otakudesu',
-        });
-      });
+      .catch(() => setError('Gagal memuat episode'))
+      .finally(() => setLoading(false));
   }, [episodeId]);
 
-  const handleAdSupport = useCallback(async () => {
-    setAdLoading(true);
-    try {
-      await showRewardedAd(
-        () => Alert.alert('💜 Terima Kasih!', 'Dukunganmu sangat berarti untuk Xicinime!'),
-        () => Alert.alert('Info', 'Tidak ada iklan tersedia saat ini.'),
-      );
-    } catch {}
-    finally { setAdLoading(false); }
-  }, []);
+  const servers: StreamServer[] = data?.servers ?? data?.streamServer ?? data?.mirrorEmbed ?? [];
+  const activeServer = servers[selectedServer];
 
-  const prevSlug = epData?.navigation?.previous_episode?.slug;
-  const nextSlug = epData?.navigation?.next_episode?.slug;
+  const openStream = async (url: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(url, { presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN });
+    } catch {
+      Linking.openURL(url);
+    }
+  };
+
+  if (loading) return (
+    <View style={[styles.root, styles.center, { backgroundColor: colors.bg }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={{ color: colors.mutedForeground, marginTop: 8 }}>Memuat episode...</Text>
+    </View>
+  );
+
+  if (error || !data) return (
+    <View style={[styles.root, styles.center, { backgroundColor: colors.bg }]}>
+      <Feather name="alert-circle" size={48} color={colors.error} />
+      <Text style={[styles.errorText, { color: colors.foreground }]}>{error || 'Episode tidak ditemukan'}</Text>
+      <Pressable style={[styles.btn, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+        <Text style={styles.btnText}>Kembali</Text>
+      </Pressable>
+    </View>
+  );
+
+  const streamUrl = activeServer?.url ?? activeServer?.embed ?? activeServer?.href ?? data.streamingUrl;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <StatusBar style="light" />
-
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={styles.iconBtn}>
-          <Feather name="arrow-left" size={20} color={Colors.text} />
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Feather name="arrow-left" size={22} color={colors.foreground} />
         </Pressable>
-        <Text style={styles.topTitle} numberOfLines={1}>
-          {epData?.title || episodeId}
-        </Text>
-        <Pressable onPress={handleAdSupport} disabled={adLoading} style={styles.iconBtn}>
-          {adLoading ? <ActivityIndicator size="small" color={Colors.primary} /> : <Feather name="heart" size={18} color={Colors.primary} />}
-        </Pressable>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.epTitle, { color: colors.foreground }]} numberOfLines={1}>
+            {data.title ?? 'Episode'}
+          </Text>
+          {data.animeTitle && (
+            <Text style={[styles.animeTitle, { color: colors.mutedForeground }]} numberOfLines={1}>
+              {data.animeTitle}
+            </Text>
+          )}
+        </View>
       </View>
 
-      {/* WebView player */}
-      <View style={styles.playerWrap}>
-        {loading && (
-          <View style={styles.playerLoading}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadText}>Memuat video...</Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32, padding: 16 }}>
+        {/* Stream via browser */}
+        {streamUrl && (
+          <Pressable
+            style={[styles.streamBtn, { backgroundColor: colors.primary }]}
+            onPress={() => openStream(streamUrl)}
+          >
+            <Feather name="play-circle" size={22} color="#fff" />
+            <Text style={styles.streamBtnText}>Tonton di Browser</Text>
+          </Pressable>
+        )}
+
+        {/* Server list */}
+        {servers.length > 0 && (
+          <View style={styles.serverSection}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Pilih Server</Text>
+            <View style={styles.serverGrid}>
+              {servers.map((s, i) => (
+                <Pressable
+                  key={i}
+                  style={[
+                    styles.serverBtn,
+                    {
+                      backgroundColor: selectedServer === i ? colors.primary : colors.card,
+                      borderColor: selectedServer === i ? colors.primary : colors.border,
+                    }
+                  ]}
+                  onPress={() => setSelectedServer(i)}
+                >
+                  <Text style={[
+                    styles.serverName,
+                    { color: selectedServer === i ? '#fff' : colors.foreground }
+                  ]}>
+                    {s.server ?? s.name ?? `Server ${i + 1}`}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {activeServer && (activeServer.url ?? activeServer.embed ?? activeServer.href) && (
+              <Pressable
+                style={[styles.openBtn, { backgroundColor: colors.accent }]}
+                onPress={() => openStream(activeServer.url ?? activeServer.embed ?? activeServer.href ?? '')}
+              >
+                <Feather name="external-link" size={16} color="#fff" />
+                <Text style={styles.openBtnText}>Buka Server {activeServer.server ?? activeServer.name}</Text>
+              </Pressable>
+            )}
           </View>
         )}
-        <WebView
-          ref={webRef}
-          source={{ uri: `${SITE_WATCH}${episodeId}` }}
-          style={styles.webview}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => {
-            setLoading(false);
-            webRef.current?.injectJavaScript(INJECT_JS);
-          }}
-          onNavigationStateChange={s => setCanGoBack(s.canGoBack)}
-          javaScriptEnabled
-          domStorageEnabled
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          allowsFullscreenVideo
-          setSupportMultipleWindows={false}
-          userAgent="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
-        />
-      </View>
 
-      {/* AdMob Banner */}
-      <View style={styles.adWrap}>
-        <BannerAd
-          unitId={ADMOB_BANNER_ID}
-          size={BannerAdSize.BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-        />
-      </View>
+        {/* Navigation between episodes */}
+        <View style={styles.navRow}>
+          {data.prevEpisode && (
+            <Pressable
+              style={[styles.navBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.replace(`/watch/${data.prevEpisode}` as any)}
+            >
+              <Feather name="chevron-left" size={18} color={colors.primary} />
+              <Text style={[styles.navText, { color: colors.foreground }]}>Sebelumnya</Text>
+            </Pressable>
+          )}
+          {data.nextEpisode && (
+            <Pressable
+              style={[styles.navBtn, { backgroundColor: colors.primary, flex: 1 }]}
+              onPress={() => router.replace(`/watch/${data.nextEpisode}` as any)}
+            >
+              <Text style={[styles.navText, { color: '#fff' }]}>Selanjutnya</Text>
+              <Feather name="chevron-right" size={18} color="#fff" />
+            </Pressable>
+          )}
+        </View>
 
-      {/* Navigation */}
-      <View style={[styles.navBar, { paddingBottom: insets.bottom + 8 }]}>
-        <Pressable
-          style={[styles.navBtn, !prevSlug && styles.navBtnDisabled]}
-          disabled={!prevSlug}
-          onPress={() => prevSlug && router.replace(`/watch/${prevSlug}` as any)}
-        >
-          <Feather name="chevron-left" size={16} color={prevSlug ? Colors.text : Colors.muted} />
-          <Text style={[styles.navText, !prevSlug && { color: Colors.muted }]}>Sebelumnya</Text>
-        </Pressable>
+        {/* Download link */}
+        {data.downloadUrl && (
+          <Pressable
+            style={[styles.downloadBtn, { borderColor: colors.border }]}
+            onPress={() => Linking.openURL(data.downloadUrl!)}
+          >
+            <Feather name="download" size={16} color={colors.primary} />
+            <Text style={[styles.downloadText, { color: colors.primary }]}>Download Episode</Text>
+          </Pressable>
+        )}
 
-        <Pressable style={styles.episodesBtn} onPress={() => router.back()}>
-          <Feather name="list" size={14} color={Colors.white} />
-          <Text style={styles.episodesBtnText}>Episode</Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.navBtn, !nextSlug && styles.navBtnDisabled]}
-          disabled={!nextSlug}
-          onPress={() => nextSlug && router.replace(`/watch/${nextSlug}` as any)}
-        >
-          <Text style={[styles.navText, !nextSlug && { color: Colors.muted }]}>Berikutnya</Text>
-          <Feather name="chevron-right" size={16} color={nextSlug ? Colors.text : Colors.muted} />
-        </Pressable>
-      </View>
+        {/* Note about native build */}
+        <View style={[styles.note, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Feather name="info" size={14} color={colors.mutedForeground} />
+          <Text style={[styles.noteText, { color: colors.mutedForeground }]}>
+            Untuk streaming langsung di app, install APK dari xicinime.my.id
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  topBar: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md,
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  root: { flex: 1 },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 12 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 12,
   },
-  iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  topTitle: { flex: 1, color: Colors.text, fontSize: 14, fontWeight: '600', marginHorizontal: 8 },
-  playerWrap: { flex: 1, position: 'relative', backgroundColor: Colors.black },
-  playerLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg, zIndex: 5 },
-  loadText: { color: Colors.subtext, marginTop: 12, fontSize: 13 },
-  webview: { flex: 1, backgroundColor: Colors.black },
-  adWrap: { alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface, minHeight: 52, paddingVertical: 4 },
-  navBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md, paddingTop: 10,
-    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border,
+  backBtn: { padding: 4 },
+  epTitle: { fontSize: 15, fontWeight: '700' },
+  animeTitle: { fontSize: 12, marginTop: 2 },
+  errorText: { fontSize: 15, textAlign: 'center', paddingHorizontal: 32 },
+  btn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 24 },
+  btnText: { color: '#fff', fontWeight: '700' },
+  streamBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 20,
   },
-  navBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, padding: 8 },
-  navBtnDisabled: { opacity: 0.4 },
-  navText: { color: Colors.text, fontSize: 13, fontWeight: '600' },
-  episodesBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 9, borderRadius: Radius.full,
+  streamBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  serverSection: { marginBottom: 20 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
+  serverGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  serverBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
   },
-  episodesBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  serverName: { fontSize: 13, fontWeight: '600' },
+  openBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 12,
+    justifyContent: 'center',
+  },
+  openBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  navRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  navBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  navText: { fontSize: 13, fontWeight: '600' },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  downloadText: { fontSize: 14, fontWeight: '600' },
+  note: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  noteText: { flex: 1, fontSize: 12, lineHeight: 18 },
 });

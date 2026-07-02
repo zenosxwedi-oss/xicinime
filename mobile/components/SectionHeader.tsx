@@ -1,24 +1,32 @@
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Spacing } from '@/constants/Theme';
+import { useColors } from '@/hooks/useColors';
 
 interface Props {
   title: string;
-  emoji?: string;
   href?: string;
+  onSeeAll?: () => void;
 }
 
-export default function SectionHeader({ title, emoji, href }: Props) {
+export default function SectionHeader({ title, href, onSeeAll }: Props) {
+  const colors = useColors();
   const router = useRouter();
+
+  const handlePress = () => {
+    if (onSeeAll) { onSeeAll(); return; }
+    if (href) router.push(href as any);
+  };
+
   return (
     <View style={styles.row}>
-      <Text style={styles.title}>
-        {emoji ? `${emoji} ` : ''}{title}
-      </Text>
-      {href && (
-        <Pressable onPress={() => router.push(href as any)}>
-          <Text style={styles.link}>Lihat Semua →</Text>
+      <View style={[styles.accent, { backgroundColor: colors.primary }]} />
+      <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+      {(href || onSeeAll) && (
+        <Pressable style={styles.seeAll} onPress={handlePress}>
+          <Text style={[styles.seeAllText, { color: colors.primary }]}>Lihat Semua</Text>
+          <Feather name="chevron-right" size={14} color={colors.primary} />
         </Pressable>
       )}
     </View>
@@ -29,18 +37,27 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  accent: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
   },
   title: {
-    color: Colors.text,
     fontSize: 16,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    flex: 1,
+    letterSpacing: 0.2,
   },
-  link: {
-    color: Colors.primary,
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
     fontSize: 12,
     fontWeight: '600',
   },

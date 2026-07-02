@@ -5,41 +5,50 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, FlatList,
-  Pressable, RefreshControl, StyleSheet, Text, View,
+  Animated,
+  FlatList,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimeCard from '@/components/AnimeCard';
 import SectionHeader from '@/components/SectionHeader';
 import { CardSkeleton } from '@/components/Skeleton';
-import { Colors, Radius, Spacing } from '@/constants/Theme';
-import { api } from '@/services/api';
-import { showRewardedAd } from '@/utils/admob';
-
-const BANNER_H = 240;
-const ADMOB_BANNER_ID = __DEV__
-  ? TestIds.BANNER
-  : 'ca-app-pub-3848627834535677/3573045936';
+import { useColors } from '@/hooks/useColors';
+import { anime, type AnimeItem } from '@/services/api';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [homeData, setHomeData] = useState<any>(null);
+  const colors = useColors();
+
+  const [recent, setRecent] = useState<AnimeItem[]>([]);
+  const [ongoing, setOngoing] = useState<AnimeItem[]>([]);
+  const [completed, setCompleted] = useState<AnimeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [adLoading, setAdLoading] = useState(false);
-  const [rewardVisible, setRewardVisible] = useState(false);
-  const toastAnim = useRef(new Animated.Value(0)).current;
+  const [featured, setFeatured] = useState<AnimeItem | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
+  const load = useCallback(async () => {
     try {
-      const res = await api.home();
-      setHomeData(res?.data ?? res);
+      const res = await anime.home();
+      const d = res?.data ?? res;
+      const rec: AnimeItem[] = d?.recent?.animeList ?? d?.recent ?? [];
+      const ong: AnimeItem[] = d?.ongoing?.animeList ?? d?.ongoing ?? [];
+      const com: AnimeItem[] = d?.completed?.animeList ?? d?.completed ?? [];
+      setRecent(rec);
+      setOngoing(ong);
+      setCompleted(com);
+      const all = [...rec, ...ong];
+      if (all.length > 0) setFeatured(all[Math.floor(Math.random() * Math.min(5, all.length))]);
     } catch {
-      if (!silent) Alert.alert('Gagal memuat', 'Periksa koneksi internetmu.');
+      // silently ignore
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -48,178 +57,200 @@ export default function HomeScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const showToast = () => {
-    setRewardVisible(true);
-    Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.delay(2500),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => setRewardVisible(false));
+  const onRefresh = useCallback(() => { setRefreshing(true); load(); }, [load]);
+
+  const goAnime = (item: AnimeItem) => {
+    const slug = item.animeId ?? item.slug;
+    if (slug) router.push(`/anime/${slug}` as any);
   };
 
-  const handleSupport = async () => {
-    setAdLoading(true);
-    try {
-      await showRewardedAd(() => showToast(), () => Alert.alert('Info', 'Tidak ada iklan tersedia. Coba lagi nanti.'));
-    } catch { showToast(); }
-    finally { setAdLoading(false); }
-  };
-
-  const headerOpacity = scrollY.interpolate({ inputRange: [0, BANNER_H - 60], outputRange: [0, 1], extrapolate: 'clamp' });
-  const ongoing: any[] = homeData?.ongoingAnime ?? [];
-  const completed: any[] = homeData?.completedAnime ?? [];
-  const featured = ongoing[0];
+  const webTop = Platform.OS === 'web' ? 67 : 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <StatusBar style="light" />
 
-      <Animated.View style={[styles.stickyHeader, { paddingTop: insets.top + 4, opacity: headerOpacity }]}>
-        <Text style={styles.stickyTitle}>XICINIME</Text>
-        <Pressable onPress={() => router.push('/search' as any)} style={styles.iconBtn}>
-          <Feather name="search" size={18} color={Colors.text} />
+      {/* Sticky header */}
+      <View style={[styles.header, { paddingTop: insets.top + webTop + 12 }]}>
+        <Image source={require('@/assets/images/icon.png')} style={styles.logo} contentFit="contain" />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.appName, { color: colors.foreground }]}>XICINIME</Text>
+          <Text style={[styles.appSub, { color: colors.mutedForeground }]}>Nonton anime sub indo gratis</Text>
+        </View>
+        <Pressable
+          style={[styles.searchBtn, { backgroundColor: colors.surface }]}
+          onPress={() => router.push('/search' as any)}
+        >
+          <Feather name="search" size={18} color={colors.mutedForeground} />
         </Pressable>
-      </Animated.View>
-
-      {rewardVisible && (
-        <Animated.View style={[styles.toast, { top: insets.top + 62, opacity: toastAnim }]}>
-          <Text style={styles.toastText}>💜 Terima kasih mendukung Xicinime!</Text>
-        </Animated.View>
-      )}
+      </View>
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(true); }} tintColor={Colors.primary} />}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        contentContainerStyle={{ paddingBottom: insets.bottom + (Platform.OS === 'web' ? 84 : 80) }}
       >
-        <View style={styles.hero}>
-          {featured && (
-            <Image source={{ uri: featured.poster || featured.poster_url }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={8} />
-          )}
-          <LinearGradient colors={['transparent', 'rgba(8,8,15,0.6)', Colors.bg]} style={StyleSheet.absoluteFill} />
-          <View style={[styles.heroContent, { paddingTop: insets.top + 16 }]}>
-            <Text style={styles.logoText}>XICINIME</Text>
-            <Text style={styles.logoSub}>Nonton anime sub indo gratis</Text>
-            <View style={styles.heroActions}>
-              <Pressable style={styles.searchBtn} onPress={() => router.push('/search' as any)}>
-                <Feather name="search" size={14} color={Colors.white} />
-                <Text style={styles.searchBtnText}>Cari Anime</Text>
-              </Pressable>
-              <Pressable style={styles.supportBtn} onPress={handleSupport} disabled={adLoading}>
-                {adLoading
-                  ? <ActivityIndicator size="small" color={Colors.primary} />
-                  : <><Feather name="heart" size={14} color={Colors.primary} /><Text style={styles.supportBtnText}>Support</Text></>}
+        {/* Featured hero */}
+        {featured && (
+          <Pressable style={styles.hero} onPress={() => goAnime(featured)}>
+            <Image source={{ uri: featured.poster ?? featured.poster_url }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={6} />
+            <LinearGradient
+              colors={['transparent', 'rgba(8,8,15,0.7)', colors.bg]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.heroContent}>
+              <View style={[styles.liveTag, { backgroundColor: colors.primary }]}>
+                <Text style={styles.liveTagText}>FEATURED</Text>
+              </View>
+              <Text style={[styles.heroTitle, { color: colors.foreground }]} numberOfLines={2}>
+                {featured.title}
+              </Text>
+              {featured.status && (
+                <Text style={[styles.heroMeta, { color: colors.mutedForeground }]}>
+                  {featured.status} {featured.episodes ? `· ${featured.episodes} Ep` : ''}
+                </Text>
+              )}
+              <Pressable style={[styles.watchBtn, { backgroundColor: colors.primary }]} onPress={() => goAnime(featured)}>
+                <Feather name="play" size={14} color="#fff" />
+                <Text style={styles.watchBtnText}>Tonton Sekarang</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
-
-        {/* AdMob Banner */}
-        <View style={styles.adWrap}>
-          <BannerAd
-            unitId={ADMOB_BANNER_ID}
-            size={BannerAdSize.BANNER}
-            requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-          />
-        </View>
-
-        {loading ? (
-          <View style={styles.skeletonWrap}>
-            {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
-          </View>
-        ) : (
-          <>
-            {ongoing.length > 0 && (
-              <View style={styles.section}>
-                <SectionHeader title="🔥 Sedang Tayang" onSeeAll={() => router.push('/ongoing' as any)} />
-                <FlatList
-                  data={ongoing.slice(0, 20)}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item, idx) => (item.animeId || item.slug || idx).toString()}
-                  renderItem={({ item }) => (
-                    <AnimeCard
-                      anime={item}
-                      onPress={() => router.push(`/anime/${item.animeId || item.slug}` as any)}
-                    />
-                  )}
-                  contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: 12 }}
-                />
-              </View>
-            )}
-
-            {/* Mid-page AdMob Banner */}
-            {ongoing.length > 0 && completed.length > 0 && (
-              <View style={styles.adWrap}>
-                <BannerAd
-                  unitId={ADMOB_BANNER_ID}
-                  size={BannerAdSize.MEDIUM_RECTANGLE}
-                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                />
-              </View>
-            )}
-
-            {completed.length > 0 && (
-              <View style={styles.section}>
-                <SectionHeader title="✅ Baru Selesai" onSeeAll={() => router.push('/completed' as any)} />
-                <FlatList
-                  data={completed.slice(0, 20)}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item, idx) => (item.animeId || item.slug || idx).toString()}
-                  renderItem={({ item }) => (
-                    <AnimeCard
-                      anime={item}
-                      onPress={() => router.push(`/anime/${item.animeId || item.slug}` as any)}
-                    />
-                  )}
-                  contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: 12 }}
-                />
-              </View>
-            )}
-          </>
+          </Pressable>
         )}
 
-        <View style={{ height: insets.bottom + 80 }} />
+        {/* Recent Episodes */}
+        {loading ? (
+          <View style={styles.section}>
+            <SectionHeader title="Episode Terbaru" />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+              {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+            </ScrollView>
+          </View>
+        ) : recent.length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader title="Episode Terbaru" />
+            <FlatList
+              data={recent.slice(0, 20)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, i) => `rec-${item.animeId ?? item.slug ?? i}`}
+              contentContainerStyle={styles.hList}
+              renderItem={({ item }) => (
+                <AnimeCard
+                  title={item.title}
+                  poster={item.poster ?? item.poster_url}
+                  episode={item.current_episode ?? (item.episodes ? `Ep ${item.episodes}` : undefined)}
+                  status={item.status}
+                  onPress={() => goAnime(item)}
+                />
+              )}
+            />
+          </View>
+        ) : null}
+
+        {/* Ongoing */}
+        {!loading && ongoing.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="Sedang Tayang" />
+            <FlatList
+              data={ongoing.slice(0, 20)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, i) => `ong-${item.animeId ?? item.slug ?? i}`}
+              contentContainerStyle={styles.hList}
+              renderItem={({ item }) => (
+                <AnimeCard
+                  title={item.title}
+                  poster={item.poster ?? item.poster_url}
+                  episode={item.current_episode ?? (item.episodes ? `Ep ${item.episodes}` : undefined)}
+                  status={item.status}
+                  onPress={() => goAnime(item)}
+                />
+              )}
+            />
+          </View>
+        )}
+
+        {/* Completed */}
+        {!loading && completed.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="Baru Selesai" />
+            <FlatList
+              data={completed.slice(0, 20)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, i) => `com-${item.animeId ?? item.slug ?? i}`}
+              contentContainerStyle={styles.hList}
+              renderItem={({ item }) => (
+                <AnimeCard
+                  title={item.title}
+                  poster={item.poster ?? item.poster_url}
+                  episode={item.episodes ? `${item.episodes} Ep` : undefined}
+                  status={item.status}
+                  onPress={() => goAnime(item)}
+                />
+              )}
+            />
+          </View>
+        )}
       </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  stickyHeader: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg, paddingBottom: 10,
-    backgroundColor: Colors.bg, borderBottomWidth: 1, borderBottomColor: Colors.border,
+  root: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 10,
   },
-  stickyTitle: { color: Colors.text, fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  iconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  toast: {
-    position: 'absolute', left: 20, right: 20, zIndex: 99,
-    backgroundColor: Colors.primary, borderRadius: 12,
-    paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center',
-  },
-  toastText: { color: Colors.white, fontSize: 13, fontWeight: '700' },
-  hero: { height: BANNER_H, justifyContent: 'flex-end' },
-  heroContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
-  logoText: { color: Colors.white, fontSize: 28, fontWeight: '900', letterSpacing: 3, marginBottom: 4 },
-  logoSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 16 },
-  heroActions: { flexDirection: 'row', gap: 10 },
+  logo: { width: 36, height: 36, borderRadius: 8 },
+  appName: { fontSize: 18, fontWeight: '900', letterSpacing: 1 },
+  appSub: { fontSize: 11 },
   searchBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 9, borderRadius: Radius.full,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  searchBtnText: { color: Colors.white, fontWeight: '700', fontSize: 13 },
-  supportBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(147,51,234,0.15)', paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.primary,
+  hero: {
+    height: 240,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  supportBtnText: { color: Colors.primary, fontWeight: '700', fontSize: 13 },
-  adWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: 8, backgroundColor: Colors.surface, minHeight: 60 },
-  skeletonWrap: { flexDirection: 'row', flexWrap: 'wrap', padding: Spacing.lg, gap: 12 },
-  section: { marginTop: Spacing.lg },
+  heroContent: { padding: 16, gap: 6 },
+  liveTag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  liveTagText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  heroTitle: { fontSize: 18, fontWeight: '800', lineHeight: 24 },
+  heroMeta: { fontSize: 12 },
+  watchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  watchBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  section: { marginBottom: 28 },
+  hList: { paddingHorizontal: 16, gap: 12 },
 });

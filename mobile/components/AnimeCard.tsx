@@ -1,103 +1,72 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Radius, Spacing } from '@/constants/Theme';
+import { useColors } from '@/hooks/useColors';
 
 interface Props {
-  animeId?: string;
-  slug?: string;
   title: string;
   poster?: string;
-  poster_url?: string;
+  episode?: string;
   status?: string;
-  episodes?: string | number;
   type?: string;
-  latestEpisodeSlug?: string;
-  source?: 'otakudesu' | 'donghua';
   width?: number;
+  onPress: () => void;
 }
 
-const statusColor: Record<string, string> = {
-  ONGOING: Colors.primary,
-  COMPLETED: Colors.success,
-  DONGHUA: Colors.donghua,
-};
-
 export default function AnimeCard({
-  slug,
-  animeId,
   title,
   poster,
-  poster_url,
+  episode,
   status,
-  episodes,
-  latestEpisodeSlug,
-  source = 'otakudesu',
+  type,
   width = 130,
+  onPress,
 }: Props) {
-  const router = useRouter();
-  const imgSrc = poster || poster_url || '';
-  const id = slug || animeId || '';
-  const statusUp = status?.toUpperCase();
-  const badgeColor = statusUp ? (statusColor[statusUp] ?? Colors.primary) : Colors.primary;
-
-  const handlePress = () => {
-    if (latestEpisodeSlug) {
-      router.push(`/watch/${latestEpisodeSlug}`);
-    } else {
-      router.push(`/anime/${id}?source=${source}`);
-    }
-  };
-
+  const colors = useColors();
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, { width, opacity: pressed ? 0.82 : 1 }]}
-      onPress={handlePress}
+      style={({ pressed }) => [styles.wrap, { width, opacity: pressed ? 0.8 : 1 }]}
+      onPress={onPress}
     >
-      <View style={[styles.imageWrap, { width }]}>
+      <View style={[styles.imgWrap, { borderRadius: colors.radius, width, height: width * 1.42 }]}>
         <Image
-          source={{ uri: imgSrc }}
-          style={styles.image}
+          source={{ uri: poster }}
+          style={styles.img}
           contentFit="cover"
-          transition={200}
-          placeholder={undefined}
+          placeholder={require('@/assets/images/icon.png')}
+          transition={300}
         />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.85)']}
-          style={StyleSheet.absoluteFill}
-        />
-        {statusUp && (
-          <View style={[styles.badge, { backgroundColor: badgeColor }]}>
-            <Text style={styles.badgeText}>{statusUp}</Text>
+        {status && (
+          <View style={[
+            styles.badge,
+            { backgroundColor: status.toLowerCase() === 'ongoing' ? colors.primary : colors.success }
+          ]}>
+            <Text style={styles.badgeText} numberOfLines={1}>{status}</Text>
           </View>
         )}
-        {episodes != null && (
-          <View style={styles.epsBadge}>
-            <Text style={styles.epsText}>{episodes} eps</Text>
+        {type && type.toLowerCase() === 'movie' && (
+          <View style={[styles.typeBadge, { backgroundColor: colors.warning }]}>
+            <Text style={styles.badgeText}>Movie</Text>
           </View>
         )}
       </View>
-      <Text style={[styles.title, { width }]} numberOfLines={2}>
-        {title}
-      </Text>
+      <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>{title}</Text>
+      {episode && (
+        <Text style={[styles.ep, { color: colors.mutedForeground }]} numberOfLines={1}>{episode}</Text>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    marginRight: Spacing.sm,
+  wrap: {
+    gap: 6,
   },
-  imageWrap: {
-    height: 185,
-    borderRadius: Radius.md,
+  imgWrap: {
     overflow: 'hidden',
-    backgroundColor: Colors.surface2,
-    position: 'relative',
+    backgroundColor: '#1a1a2e',
   },
-  image: {
+  img: {
     width: '100%',
     height: '100%',
   },
@@ -107,33 +76,28 @@ const styles = StyleSheet.create({
     left: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: Radius.xs,
+    borderRadius: 4,
   },
-  badgeText: {
-    color: Colors.white,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  epsBadge: {
+  typeBadge: {
     position: 'absolute',
-    bottom: 6,
+    top: 6,
     right: 6,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  epsText: {
-    color: Colors.subtext,
+  badgeText: {
+    color: '#fff',
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   title: {
-    color: Colors.text,
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '600',
-    marginTop: 6,
     lineHeight: 16,
+  },
+  ep: {
+    fontSize: 11,
   },
 });
