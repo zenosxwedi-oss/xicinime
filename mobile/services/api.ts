@@ -16,7 +16,7 @@ const fetchJSON = async (path: string, signal?: AbortSignal) => {
 export const anime = {
   home: (signal?: AbortSignal) => fetchJSON('/samehadaku/home', signal),
   search: (q: string, signal?: AbortSignal) =>
-    fetchJSON(`/samehadaku/search/${encodeURIComponent(q)}`, signal),
+    fetchJSON(`/samehadaku/search?q=${encodeURIComponent(q)}`, signal),
   detail: (slug: string, signal?: AbortSignal) =>
     fetchJSON(`/samehadaku/anime/${slug}`, signal),
   episode: (slug: string, signal?: AbortSignal) =>

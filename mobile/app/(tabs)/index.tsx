@@ -137,7 +137,7 @@ export default function HomeScreen() {
               data={recent.slice(0, 20)}
               horizontal
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, i) => `rec-${item.animeId ?? item.slug ?? i}`}
+              keyExtractor={(item, i) => `rec-${i}-${item.animeId ?? item.slug ?? ''}`}
               contentContainerStyle={styles.hList}
               renderItem={({ item }) => (
                 <AnimeCard
