@@ -1,0 +1,262 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/build-apk.yml"
+
+jobs:
+  build:
+    name: Build & Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Create Gradle init script for Kotlin compatibility
+        run: |
+          mkdir -p ~/.gradle/init.d
+          node << 'JSEOF'
+          const fs = require('fs');
+          const os = require('os');
+          const initScript = [
+            '// CI init: skip Kotlin metadata version check for play-services-ads 25.4+ compat',
+            'allprojects {',
+            '    tasks.configureEach { t ->',
+            "        if (t.hasProperty('kotlinOptions')) {",
+            "            t.kotlinOptions.freeCompilerArgs += ['-Xskip-metadata-version-check']",
+            '        }',
+            '    }',
+            '}',
+          ].join('\n');
+          const path = os.homedir() + '/.gradle/init.d/kotlin-compat-fix.gradle';
+          fs.writeFileSync(path, initScript);
+          console.log('Created:', path);
+          JSEOF
+
+      - name: Install Expo CLI & dependencies
+        working-directory: mobile
+        run: |
+          npm install -g @expo/cli@latest
+          npm install --legacy-peer-deps
+
+      - name: Patch react-native-google-mobile-ads before prebuild
+        working-directory: mobile
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          const libPath = 'node_modules/react-native-google-mobile-ads/android/build.gradle';
+          try {
+            const content = fs.readFileSync(libPath, 'utf8');
+            const patch = [
+              '',
+              '// CI patch: skip Kotlin metadata version check for play-services-ads 25.4+',
+              'android {',
+              '    kotlinOptions {',
+              "        freeCompilerArgs += ['-Xskip-metadata-version-check']",
+              '    }',
+              '}',
+              '',
+            ].join('\n');
+            fs.appendFileSync(libPath, patch);
+            console.log('Patched react-native-google-mobile-ads/android/build.gradle');
+          } catch (e) {
+            console.log('Warning: could not patch library:', e.message);
+          }
+          JSEOF
+
+      - name: Generate Android native project (expo prebuild)
+        working-directory: mobile
+        run: |
+          npx expo prebuild --platform android --no-install --clean
+        env:
+          CI: "1"
+
+      - name: Patch root android/build.gradle - insert configureEach before expo plugins
+        working-directory: mobile/android
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          const content = fs.readFileSync('build.gradle', 'utf8');
+          const insertBefore = 'apply plugin: "expo-root-project"';
+          const patch = [
+            '// CI fix: configureEach for Kotlin metadata skip (must be before expo/rn plugins)',
+            'subprojects {',
+            '    tasks.configureEach { t ->',
+            "        if (t.hasProperty('kotlinOptions')) {",
+            "            t.kotlinOptions.freeCompilerArgs += ['-Xskip-metadata-version-check']",
+            '        }',
+            '    }',
+            '}',
+            '',
+          ].join('\n');
+          const idx = content.indexOf(insertBefore);
+          if (idx !== -1) {
+            const newContent = content.slice(0, idx) + patch + content.slice(idx);
+            fs.writeFileSync('build.gradle', newContent);
+            console.log('Patch inserted before expo-root-project plugin');
+          } else {
+            fs.appendFileSync('build.gradle', '\n' + patch);
+            console.log('Warning: expo-root-project not found, appended to end');
+          }
+          JSEOF
+
+      - name: Enable R8 minification & resource shrinking
+        working-directory: mobile/android
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          let content = fs.readFileSync('app/build.gradle', 'utf8');
+          // Aktifkan minifyEnabled true dan shrinkResources true di release build type
+          content = content.replace(/minifyEnabled\s+false/, 'minifyEnabled true');
+          content = content.replace(/shrinkResources\s+false/, 'shrinkResources true');
+          // Jika belum ada, tambahkan setelah signingConfig di blok release
+          if (!content.includes('minifyEnabled true')) {
+            content = content.replace(
+              /(signingConfig signingConfigs\.release)/,
+              '$1\n                minifyEnabled true\n                shrinkResources true'
+            );
+          }
+          fs.writeFileSync('app/build.gradle', content);
+          console.log('Done. minifyEnabled/shrinkResources:');
+          console.log(content.match(/minifyEnabled.*/g));
+          console.log(content.match(/shrinkResources.*/g));
+          JSEOF
+
+      - name: Decode & place release keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > mobile/android/app/release.keystore
+          ls -lh mobile/android/app/release.keystore
+
+      - name: Inject release signing config into app/build.gradle
+        working-directory: mobile/android
+        run: |
+          node << 'JSEOF'
+          const fs = require('fs');
+          let content = fs.readFileSync('app/build.gradle', 'utf8');
+
+          if (!content.includes('release.keystore')) {
+            const signingIdx = content.indexOf('signingConfigs {');
+            if (signingIdx !== -1) {
+              const debugIdx = content.indexOf('debug {', signingIdx);
+              if (debugIdx !== -1) {
+                let depth = 0, i = debugIdx;
+                while (i < content.length) {
+                  if (content[i] === '{') depth++;
+                  else if (content[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+                  i++;
+                }
+                const releaseBlock = '\n              release {\n' +
+                  "                  storeFile file('release.keystore')\n" +
+                  "                  storePassword System.getenv('ANDROID_STORE_PASSWORD') ?: ''\n" +
+                  "                  keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: ''\n" +
+                  "                  keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: ''\n" +
+                  '              }';
+                content = content.slice(0, i) + releaseBlock + content.slice(i);
+              }
+            }
+          }
+
+          const buildTypesIdx = content.indexOf('buildTypes {');
+          if (buildTypesIdx !== -1) {
+            const releaseTypeIdx = content.indexOf('release {', buildTypesIdx);
+            if (releaseTypeIdx !== -1) {
+              let depth = 0, i = releaseTypeIdx;
+              while (i < content.length) {
+                if (content[i] === '{') depth++;
+                else if (content[i] === '}') { depth--; if (depth === 0) { i++; break; } }
+                i++;
+              }
+              const blockStr = content.slice(releaseTypeIdx, i);
+              const fixedBlock = blockStr.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release');
+              content = content.slice(0, releaseTypeIdx) + fixedBlock + content.slice(i);
+            }
+          }
+
+          fs.writeFileSync('app/build.gradle', content);
+          console.log('Signing config injected');
+          JSEOF
+
+      - name: Make gradlew executable
+        working-directory: mobile/android
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}-v5
+          restore-keys: gradle-
+
+      - name: Build Release APK
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon -x lint
+        env:
+          GRADLE_OPTS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Find & rename APK
+        id: apk
+        run: |
+          APK=$(find mobile/android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "Found: $APK"
+          ls -lh "$APK"
+          SIZE_MB=$(du -m "$APK" | cut -f1)
+          VERSION="v1.1.${{ github.run_number }}"
+          NEW_NAME="xicinime-${VERSION}.apk"
+          cp "$APK" "$NEW_NAME"
+          echo "apk_path=$NEW_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "size_mb=${SIZE_MB}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.apk.outputs.version }}
+          name: "XiciNime ${{ steps.apk.outputs.version }}"
+          body: |
+            ## XiciNime ${{ steps.apk.outputs.version }} - Android APK
+
+            **Ukuran:** ~${{ steps.apk.outputs.size_mb }} MB
+
+            ### ⬇️ Download
+            Klik file `.apk` di bawah untuk download langsung — **gratis, bebas iklan Play Store**.
+
+            ### Cara Install (30 detik)
+            1. Download file `.apk` di bawah
+            2. Buka file manager → tap file APK
+            3. Jika muncul **"Sumber tidak dikenal"** → aktifkan izin install dari sumber ini
+            4. Tap **Install** → buka Xicinime dan nikmati!
+
+            > ⚠️ Peringatan Google Play Protect adalah **normal** untuk semua APK di luar Play Store.
+            > Tap **"Tetap Install"** untuk melanjutkan.
+
+            ---
+            ✅ Build otomatis dari branch `main` via GitHub Actions.
+          files: ${{ steps.apk.outputs.apk_path }}
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
