@@ -74,3 +74,32 @@ export interface AnimeItem {
   releasedOn?: string;
   score?: string | number | { value?: string };
 }
+
+    // ─── AnimeKompi ───────────────────────────────────────────────────────────────
+    const ANIMEKOMPI_BASE = 'https://api.animekompi.web.id';
+
+    const fetchAnimekompi = async (path: string, signal?: AbortSignal) => {
+    const res = await fetch(`${ANIMEKOMPI_BASE}${path}`, {
+      headers: { Accept: 'application/json', 'User-Agent': 'XicInime/1.0 Android/14 (id.xicinime.app)' },
+      signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+    };
+
+    export const animekompi = {
+    home:      (page = 1, signal?: AbortSignal) => fetchAnimekompi(`/home?page=${page}`, signal),
+    movie:     (page = 1, signal?: AbortSignal) => fetchAnimekompi(`/movie?page=${page}`, signal),
+    tokusatsu: (page = 1, signal?: AbortSignal) => fetchAnimekompi(`/tokusatsu?page=${page}`, signal),
+    filter:    (params: Record<string, string | number> = {}, signal?: AbortSignal) => {
+      const qs = new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)]))
+      ).toString();
+      return fetchAnimekompi(`/filter${qs ? '?' + qs : ''}`, signal);
+    },
+    };
+
+    export interface AnimekompiItem {
+    title: string; slug: string; poster?: string; episode?: string; type?: string; status?: string; date?: string;
+    }
+    
