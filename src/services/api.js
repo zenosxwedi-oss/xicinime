@@ -337,7 +337,7 @@ const providers = {
     getStreamingServer: (serverId) => fetchAnime(`/samehadaku/server/${serverId}`, 'samehadaku'),
     getBatchList: () => fetchAnime('/samehadaku/batch', 'samehadaku'),
     getBatchDetail: (batchId) => fetchAnime(`/samehadaku/batch/${batchId}`, 'samehadaku'),
-      getRecent: (page = 1) => fetchAnime(page > 1 ? `/samehadaku/recent?page=${page}` : '/samehadaku/recent', 'samehadaku'),
+    getRecent: (page = 1) => fetchAnime(page > 1 ? `/samehadaku/recent?page=${page}` : '/samehadaku/recent', 'samehadaku'),
   },
   
   kusonime: {
@@ -380,6 +380,22 @@ const providers = {
     search: (keyword) => fetchAnime(`/stream/search/${encodeURIComponent(keyword)}`, 'stream'),
     getAnimeDetail: (slug) => fetchAnime(`/stream/anime/${slug}`, 'stream'),
     getEpisodeDetail: (slug) => fetchAnime(`/stream/episode/${slug}`, 'stream', { priority: true }),
+  },
+
+  animekompi: {
+    getHome: (page = 1) => fetchAnime(page > 1 ? `/animekompi/home?page=${page}` : '/animekompi/home', 'animekompi'),
+    getFilter: (params = {}) => {
+      const qs = new URLSearchParams();
+      if (params.genre) [].concat(params.genre).forEach(g => qs.append('genre[]', g));
+      if (params.studio) [].concat(params.studio).forEach(s => qs.append('studio[]', s));
+      if (params.order) qs.set('order', params.order);
+      if (params.type) qs.set('type', params.type);
+      if (params.page && params.page > 1) qs.set('page', String(params.page));
+      const query = qs.toString();
+      return fetchAnime(`/animekompi/filter${query ? '?' + query : ''}`, 'animekompi');
+    },
+    getMovie: (page = 1) => fetchAnime(`/animekompi/movie?page=${page}`, 'animekompi'),
+    getTokusatsu: (page = 1) => fetchAnime(`/animekompi/tokusatsu?page=${page}`, 'animekompi'),
   },
 };
 
@@ -813,6 +829,45 @@ export const animeAPI = {
   // Get Donghua by season/year
   getDonghuaBySeason: async (year) => {
     return fetchAnime(`/donghua/seasons/${year}`, 'donghua');
+  },
+
+
+  // ═══════════════════════════════════════════════════════
+  // ANIMEKOMPI — anime terbaru, movie, live action/tokusatsu, filter
+  // ═══════════════════════════════════════════════════════
+
+  // AnimeKompi home — daftar episode terbaru
+  getAnimekompiHome: async (page = 1) => {
+    return providers.animekompi.getHome(page);
+  },
+
+  // AnimeKompi filter — by genre, studio, type, order
+  getAnimekompiFilter: async (params = {}) => {
+    return providers.animekompi.getFilter(params);
+  },
+
+  // AnimeKompi movie terbaru
+  getAnimekompiMovie: async (page = 1) => {
+    return providers.animekompi.getMovie(page);
+  },
+
+  // AnimeKompi live action / tokusatsu
+  getAnimekompiTokusatsu: async (page = 1) => {
+    return providers.animekompi.getTokusatsu(page);
+  },
+
+  // ═══════════════════════════════════════════════════════
+  // SAMEHADAKU RECENT & MOVIES
+  // ═══════════════════════════════════════════════════════
+
+  // Samehadaku recent — episode terbaru
+  getSamehadakuRecent: async () => {
+    return providers.samehadaku.getRecent();
+  },
+
+  // Samehadaku movies — daftar movie
+  getSamehadakuMovies: async () => {
+    return providers.samehadaku.getMovies();
   },
 
 };
