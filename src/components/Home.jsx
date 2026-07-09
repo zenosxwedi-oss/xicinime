@@ -14,6 +14,7 @@ const DAY_ORDER = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu
 const Home = () => {
   const [homeData, setHomeData] = useState(null);
   const [donghuaData, setDonghuaData] = useState(null);
+  const [animekompiTerbaru, setAnimekompiTerbaru] = useState([]);
   const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,12 +53,13 @@ const Home = () => {
 
     // Phase 2: Non-critical data — doesn't block first paint
     const fetchSecondary = async (otakOngoing, otakCompleted) => {
-      const [sameOngoingRes, sameCompletedRes, scheduleRes, donghuaOngoingRes, donghuaCompletedRes] = await Promise.all([
+      const [sameOngoingRes, sameCompletedRes, scheduleRes, donghuaOngoingRes, donghuaCompletedRes, animekompiHomeRes] = await Promise.all([
         animeAPI.getOngoingSamehadaku().catch(() => null),
         animeAPI.getCompletedSamehadaku().catch(() => null),
         animeAPI.getSchedule().catch(() => null),
         animeAPI.getDonghuaOngoing(1).catch(() => null),
         animeAPI.getDonghuaCompleted(1).catch(() => null),
+        animeAPI.getAnimekompiHome(1).catch(() => null),
       ]);
       if (cancelled) return;
 
@@ -73,6 +75,10 @@ const Home = () => {
         completed: donghuaCompletedRes?.completed_donghua || [],
       });
       if (scheduleRes?.data) setScheduleData(scheduleRes);
+      const terbaru = (animekompiHomeRes?.data || []).map(item => ({
+        ...item, animeId: item.slug, episodes: item.episode || '', provider: 'animekompi',
+      }));
+      if (terbaru.length > 0) setAnimekompiTerbaru(terbaru);
     };
 
     fetchCritical();
@@ -318,6 +324,22 @@ const Home = () => {
               <span>☕ Trakteer Xicinime</span>
               <span className="donor-cta-arrow">→</span>
             </a>
+          </div>
+        </section>
+      )}
+
+      {animekompiTerbaru.length > 0 && (
+        <section className="section home-rail">
+          <div className="section-header home-rail-header">
+            <h2 className="section-title">🔥 Anime Terbaru</h2>
+            <a href="/movie" className="view-all">Movie →</a>
+          </div>
+          <div className="home-rail-scroll">
+            {animekompiTerbaru.slice(0, 16).map((anime, idx) => (
+              <div className="home-rail-card" key={anime.animeId ?? idx}>
+                <AnimeCard anime={anime} index={idx} providerHint="AnimeKompi" />
+              </div>
+            ))}
           </div>
         </section>
       )}
