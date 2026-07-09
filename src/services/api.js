@@ -337,6 +337,7 @@ const providers = {
     getStreamingServer: (serverId) => fetchAnime(`/samehadaku/server/${serverId}`, 'samehadaku'),
     getBatchList: () => fetchAnime('/samehadaku/batch', 'samehadaku'),
     getBatchDetail: (batchId) => fetchAnime(`/samehadaku/batch/${batchId}`, 'samehadaku'),
+      getRecent: (page = 1) => fetchAnime(page > 1 ? `/samehadaku/recent?page=${page}` : '/samehadaku/recent', 'samehadaku'),
   },
   
   kusonime: {
