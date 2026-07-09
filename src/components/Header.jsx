@@ -36,6 +36,7 @@ const Header = () => {
     { to: '/genres', label: 'Genres' },
     { to: '/schedule', label: 'Schedule' },
     { to: '/history', label: 'History' },
+      { to: '/download', label: '⬇ Download' },
   ];
 
   return (
