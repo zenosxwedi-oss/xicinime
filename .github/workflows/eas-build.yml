@@ -1,0 +1,70 @@
+name: EAS Build Android APK
+
+    on:
+    workflow_dispatch:
+    push:
+      branches: [main]
+      paths:
+        - "mobile/**"
+        - ".github/workflows/eas-build.yml"
+
+    jobs:
+    build:
+      name: Build APK on Expo servers
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Setup Node.js 20
+          uses: actions/setup-node@v4
+          with:
+            node-version: "20"
+
+        - name: Setup Expo + EAS CLI
+          uses: expo/expo-github-action@v8
+          with:
+            eas-version: latest
+            token: ${{ secrets.EXPO_TOKEN }}
+
+        - name: Install mobile dependencies
+          working-directory: mobile
+          run: npm install
+
+        - name: Init / link Expo project
+          working-directory: mobile
+          run: |
+            npx eas-cli init --non-interactive --force || true
+          env:
+            EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+        - name: Commit app.json (if projectId was added)
+          run: |
+            git config user.email "ci@xicinime.app"
+            git config user.name "CI Bot"
+            git add mobile/app.json
+            git diff --staged --quiet || git commit -m "chore: link Expo project ID [skip ci]"
+            git push || true
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Build APK via EAS (runs on Expo cloud servers)
+          working-directory: mobile
+          run: |
+            eas build \
+              --platform android \
+              --profile preview \
+              --non-interactive \
+              --no-wait
+          env:
+            EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+        - name: Print build URL
+          run: |
+            echo "Build submitted to Expo — check progress at https://expo.dev/accounts/xick/projects/xicinime-mobile/builds"
+    
