@@ -20,7 +20,7 @@ import AnimeCard from '@/components/AnimeCard';
 import SectionHeader from '@/components/SectionHeader';
 import { CardSkeleton } from '@/components/Skeleton';
 import { useColors } from '@/hooks/useColors';
-import { anime, type AnimeItem } from '@/services/api';
+import { anime, animekompi, type AnimeItem } from '@/services/api';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -33,6 +33,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [featured, setFeatured] = useState<AnimeItem | null>(null);
+  const [animekompiTerbaru, setAnimekompiTerbaru] = useState<AnimeItem[]>([]);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   const load = useCallback(async () => {
@@ -197,7 +198,29 @@ export default function HomeScreen() {
             />
           </View>
         )}
-      </Animated.ScrollView>
+        {/* 🔥 AnimeKompi Terbaru */}
+          {animekompiTerbaru.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeader title="🔥 Terbaru AnimeKompi" />
+              <FlatList
+                data={animekompiTerbaru.slice(0, 20)}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, i) => `kompi-${i}-${(item as any).slug ?? ''}`}
+                contentContainerStyle={styles.hList}
+                renderItem={({ item }) => (
+                  <AnimeCard
+                    title={item.title}
+                    poster={item.poster ?? item.poster_url}
+                    episode={(item as any).episode || item.episodes ? String((item as any).episode || item.episodes) : undefined}
+                    status={(item as any).status || 'TV'}
+                    onPress={() => goAnime(item)}
+                  />
+                )}
+              />
+            </View>
+          )}
+        </Animated.ScrollView>
     </View>
   );
 }
