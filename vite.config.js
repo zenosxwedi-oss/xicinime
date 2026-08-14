@@ -1,9 +1,20 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: [
+      // route react-native imports to react-native-web for web build
+      { find: 'react-native', replacement: 'react-native-web' },
+      // ensure any import of the native AdMob package resolves to a no-op shim
+      { find: 'react-native-google-mobile-ads', replacement: path.resolve(__dirname, 'src/shims/admob-web-stub.js') },
+      // alias mobile utils (if accidentally imported) to shims directory
+      { find: /^mobile\/(.*)/, replacement: path.resolve(__dirname, 'src/shims/$1') },
+    ],
+  },
   server: {
     historyApiFallback: true,
     proxy: {
