@@ -1,41 +1,14 @@
-import {
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
-  TestIds,
-} from "react-native-google-mobile-ads";
+// Stubbed AdMob for mobile — no-op implementation so mobile builds don't load AdMob SDK.
 
-const AD_UNIT_ID = __DEV__
-  ? TestIds.REWARDED
-  : "ca-app-pub-3848627834535677/5316005468";
-
-export async function showRewardedAd(
-  onReward: () => void,
-  onError: () => void
-): Promise<void> {
-  return new Promise((resolve) => {
-    const ad = RewardedAd.createForAdRequest(AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: false,
-      keywords: ["anime", "streaming", "entertainment"],
-    });
-
-    const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
-      ad.show();
-      resolve();
-    });
-
-    ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      onReward();
-    });
-
-    ad.addAdEventListener(AdEventType.ERROR, () => {
-      unsubLoaded();
-      onError();
-      resolve();
-    });
-
-    ad.load();
-  });
+export async function showRewardedAd(onReward: () => void, onError: () => void): Promise<void> {
+  // Immediately resolve and call onReward so UI that expects a reward continues to work.
+  try {
+    // If the app relies on rewarded ads to unlock features, we call onReward immediately.
+    onReward && onReward();
+  } catch (e) {
+    // ignore
+  }
+  return Promise.resolve();
 }
 
-export const isAdMobAvailable = true;
+export const isAdMobAvailable = false;
