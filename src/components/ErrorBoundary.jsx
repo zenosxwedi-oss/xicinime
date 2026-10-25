@@ -12,6 +12,7 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    try { window.__reactErr = String(error && (error.stack || error.message || error)); } catch {}
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
       console.error('[ErrorBoundary] Render error:', error, errorInfo);
     }

@@ -372,7 +372,8 @@ const Watch = () => {
 
   // Determine player mode: 'videojs' or 'iframe'
   // Try Video.js first, if it fails (videoFailed=true) → fallback to iframe
-  const useVideoJs = videoUrl && !videoFailed;
+  const isEmbeddable = videoUrl && (videoUrl.includes('blogger.com') || videoUrl.includes('mega.nz') || videoUrl.includes('youtube.com') || videoUrl.includes('drive.google.com'));
+  const useVideoJs = videoUrl && !videoFailed && !isEmbeddable;
 
   // ─── Render ───
   if (loading) return <div className="loading-container main-container"><div className="spinner" /><p>Memuat video...</p></div>;
@@ -392,7 +393,7 @@ const Watch = () => {
     );
   }
 
-  const iframeSrc = videoFailed ? toEmbedUrl(videoUrl) : null;
+  const iframeSrc = (videoFailed || isEmbeddable) ? toEmbedUrl(videoUrl) : null;
   const backId = animeData?.slug ?? animeData?.animeId ?? animeData?.id ?? episodeData?.animeId ?? episodeData?.animeSlug;
   const hasBack = backId != null && String(backId).trim() !== '';
 
