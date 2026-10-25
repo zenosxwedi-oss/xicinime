@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const GITHUB_REPO = 'zenosxwedi-oss/xicinime';
+const GITHUB_REPO = 'zenosxwedi-oss/nusanime-native';
 const RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
 
 const FeatureItem = ({ icon, title, desc }) => (
@@ -61,10 +61,10 @@ const Download = () => {
         // Fallback if GitHub API fails
         setRelease({
           version: 'v1.0',
-          url: `https://github.com/${GITHUB_REPO}/releases/latest/download/xicinime.apk`,
+          url: `https://github.com/${GITHUB_REPO}/releases/download/v3.8.0/nusanime-v3.8.0-debug.apk`,
           size: '~30 MB',
           date: null,
-          name: 'xicinime.apk',
+          name: 'nusanime-v3.8.0-debug.apk',
         });
       })
       .finally(() => setLoading(false));
@@ -84,7 +84,7 @@ const Download = () => {
       <div style={{ textAlign: 'center', marginBottom: '36px' }}>
         <img src="/logo.png" alt="Xicinime" style={{ width: '90px', height: '90px', borderRadius: '22px', marginBottom: '16px', boxShadow: '0 8px 32px rgba(147,51,234,0.4)' }} />
         <h1 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '8px', background: 'linear-gradient(135deg,#9333ea,#c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Xicinime App
+          Nusanime App
         </h1>
         {loading ? (
           <div style={{ color: 'var(--color-text-dim)', fontSize: '0.88rem' }}>Mengecek versi terbaru...</div>
@@ -143,7 +143,7 @@ const Download = () => {
           <StepItem num="1" text='Download APK dengan tombol di atas' />
           <StepItem num="2" text='Buka file manager → cari file .apk di folder Downloads' />
           <StepItem num="3" text='Tap file APK → jika muncul "Sumber tidak dikenal", buka Pengaturan → aktifkan izin' />
-          <StepItem num="4" text='Tap Install → tunggu selesai → buka aplikasi Xicinime 🎉' />
+          <StepItem num="4" text='Tap Install → tunggu selesai → buka aplikasi Nusanime 🎉' />
         </div>
       </div>
 
@@ -187,7 +187,7 @@ const Download = () => {
 
       <div style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-text-dim)', lineHeight: 1.7 }}>
         Dengan mengunduh, kamu menyetujui bahwa aplikasi ini hanya untuk keperluan personal.<br />
-        © 2026 Xicinime — Dibuat dengan 💜 untuk pecinta anime Indonesia
+        © 2026 Nusanime — Dibuat dengan 💜 untuk pecinta anime Indonesia
       </div>
     </div>
   );
