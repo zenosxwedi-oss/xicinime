@@ -328,13 +328,18 @@ const Watch = () => {
     setSwitchLabel(server.title || 'Server');
     if (server.href) {
       const sid = server.serverId || server.href.split('/').pop();
-      animeAPI.getStreamingServer(sid).then(d => {
-        if (d?.data?.url) setVideoUrl(d.data.url);
-        else setSwitching(false);
-      }).catch(() => {
+      const tryResolve = async () => {
+        for (let i = 0; i < 3; i++) {
+          try {
+            const d = await animeAPI.getStreamingServer(sid);
+            if (d?.data?.url) { setVideoUrl(d.data.url); setSwitching(false); return; }
+          } catch {}
+          await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+        }
         if (episodeData?.defaultStreamingUrl) setVideoUrl(episodeData.defaultStreamingUrl);
         setSwitching(false);
-      });
+      };
+      tryResolve();
     } else if (server.url) {
       setVideoUrl(server.url);
     } else {
