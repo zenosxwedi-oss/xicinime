@@ -68,10 +68,10 @@ const Watch = () => {
       try {
         const stateProvider = location.state?.provider;
         const allProviders = [
-          { fn: () => animeAPI.getDonghuaEpisode(episodeId), name: 'donghua' },
-          { fn: () => animeAPI.getEpisodeDetail(episodeId), name: 'otakudesu' },
           { fn: () => animeAPI.getEpisodeDetailSamehadaku(episodeId), name: 'samehadaku' },
+          { fn: () => animeAPI.getEpisodeDetail(episodeId), name: 'otakudesu' },
           { fn: () => animeAPI.getEpisodeDetailStream(episodeId), name: 'stream' },
+          { fn: () => animeAPI.getDonghuaEpisode(episodeId), name: 'donghua' },
         ];
 
         let providers;
@@ -88,7 +88,8 @@ const Watch = () => {
           if (cancelled) return;
           try {
             const result = await p.fn();
-            if (result?.streaming?.servers || result?.data?.defaultStreamingUrl || result?.data?.servers || result?.data?.server) {
+            const hasStream = (result?.streaming?.servers?.length > 0) || result?.data?.defaultStreamingUrl || (result?.data?.servers?.length > 0) || (result?.data?.server?.qualities?.some(q => q.serverList?.length > 0));
+            if (hasStream) {
               data = result; usedProvider = p.name; break;
             }
           } catch (e) { lastError = e; }
