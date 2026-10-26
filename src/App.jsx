@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useParams } from 'react-router-dom'
 import Home from './components/Home'
+const DbHome = lazy(() => import('./components/DbHome'))
 import Header from './components/Header'
 import './App.css'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -72,7 +73,7 @@ function App() {
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={SITE_MODE === 'db' ? <DbHome /> : <Home />} />
                 <Route path="/ongoing" element={<Ongoing />} />
                 <Route path="/completed" element={<Completed />} />
                 <Route path="/donghua-ongoing" element={<DonghuaOngoing />} />
