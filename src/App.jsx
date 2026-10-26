@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, useParams } from 'react-router-dom'
 import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
+const DbDetail = lazy(() => import('./components/DbDetail'))
 import Header from './components/Header'
 import './App.css'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -87,7 +88,8 @@ function App() {
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/history" element={<WatchHistory />} />
                 <Route path="/search" element={<UnifiedSearch />} />
-                <Route path="/anime/:animeId" element={<AnimeDetail />} />
+                <Route path="/anime/mal-:malId" element={SITE_MODE === 'db' ? <DbDetail /> : <AnimeDetail />} />
+                <Route path="/anime/:animeId" element={SITE_MODE === 'db' ? <DbDetail /> : <AnimeDetail />} />
                 <Route path="/anime/:provider/:animeId" element={<AnimeDetail />} />
                 <Route path="/watch/:episodeId" element={SITE_MODE === 'db' ? <WatchRedirect /> : <Watch />} />
                 <Route path="/download" element={<Download />} />
