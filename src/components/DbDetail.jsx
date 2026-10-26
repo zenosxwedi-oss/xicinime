@@ -39,12 +39,15 @@ export default function DbDetail() {
             const d = j2?.data;
             if (d && !dead) {
             setA({
-              title: d.title, title_english: null, score: d.score?.toString?.(), rank: null,
+              title: d.title, title_english: d.english || null,
+              score: typeof d.score === 'object' ? d.score?.value : d.score, rank: null,
               type: d.type, episodes: d.episodes ? Number(d.episodes) : null, status: d.status,
               duration: d.duration, studios: d.studios ? d.studios.split(',').map((s) => ({ name: s.trim() })) : [],
               aired: { string: d.aired || d.releasedOn },
               genres: (d.genreList || []).map((g, i) => ({ mal_id: i, name: g.title ?? g })),
-              synopsis: d.synopsis,
+              synopsis: typeof d.synopsis === 'object' && d.synopsis !== null
+                ? (d.synopsis.paragraphs || []).join('\n\n')
+                : d.synopsis,
               images: { jpg: { large_image_url: d.poster, image_url: d.poster } },
             });
             } else if (!dead && i === 2) setErr(true);
