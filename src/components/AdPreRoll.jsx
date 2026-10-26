@@ -63,7 +63,9 @@ const AdPreRoll = ({ onDone }) => {
   useEffect(() => {
     if (!mediaUrl) return;
     const t = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => clearInterval(t);
+    // hard cap: ad stuck/not playing? dismiss after 20s total
+    const kill = setTimeout(finish, 20000);
+    return () => { clearInterval(t); clearTimeout(kill); };
   }, [mediaUrl]);
 
   if (gone) return null;
@@ -81,6 +83,7 @@ const AdPreRoll = ({ onDone }) => {
           ref={videoRef}
           src={mediaUrl}
           autoPlay
+          muted
           playsInline
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           onEnded={finish}
@@ -112,6 +115,15 @@ const AdPreRoll = ({ onDone }) => {
         position: 'absolute', bottom: 10, left: 10, color: 'rgba(255,255,255,0.6)',
         fontSize: 11, fontFamily: 'sans-serif',
       }}>Iklan · Nusanime</span>
+      <button
+        type="button"
+        onClick={() => { if (videoRef.current) videoRef.current.muted = !videoRef.current.muted; }}
+        style={{
+          position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,0.6)',
+          color: '#fff', border: 'none', borderRadius: 6, padding: '6px 10px',
+          fontSize: 12, cursor: 'pointer', fontFamily: 'sans-serif',
+        }}
+      >🔊 Suara</button>
     </div>
   );
 };
