@@ -1,5 +1,26 @@
 import { Link } from 'react-router-dom';
 
+// Poster rescue: when a poster fails (blocked host), look it up on samehadaku search API
+const _posterCache = new Map();
+const _inflight = new Map();
+const rescuePoster = async (title, cb) => {
+  if (!title) return;
+  const key = title.toLowerCase().trim();
+  if (_posterCache.has(key)) { if (_posterCache.get(key)) cb(_posterCache.get(key)); return; }
+  if (_inflight.has(key)) { _inflight.get(key).push(cb); return; }
+  const cbs = [cb]; _inflight.set(key, cbs);
+  try {
+    const r = await fetch('https://www.sankavollerei.web.id/anime/samehadaku/search?q=' + encodeURIComponent(title), { headers: { Accept: 'application/json' } });
+    const j = await r.json();
+    const list = j?.data?.animeList || [];
+    let poster = null;
+    if (list.length > 0 && list[0].poster && !list[0].poster.includes('otakudesu')) poster = list[0].poster;
+    _posterCache.set(key, poster);
+    cbs.forEach(cb => { if (poster) cb(poster); });
+  } catch { _posterCache.set(key, null); }
+  _inflight.delete(key);
+};
+
 // eslint-disable-next-line react-refresh/only-export-components
 export const normalizeAnime = (anime, index = 0) => {
   const animeId = anime.animeId ?? anime.slug ?? anime.id;
@@ -56,7 +77,14 @@ const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint })
           onError={(e) => {
             if (!e.currentTarget.dataset.fb) {
               e.currentTarget.dataset.fb = '1';
-              e.currentTarget.src = `https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=${encodeURIComponent((title || 'Anime').substring(0, 10))}`;
+              const el = e.currentTarget;
+              rescuePoster(title, (url) => { el.src = url; delete el.dataset.fb; });
+              setTimeout(() => {
+                if (el.dataset.fb === '1') {
+                  el.dataset.fb = '2';
+                  el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
+                }
+              }, 6000);
             }
           }} />
         <div className="card-overlay">
