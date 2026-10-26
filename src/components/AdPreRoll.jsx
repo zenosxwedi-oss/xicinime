@@ -61,15 +61,22 @@ const AdPreRoll = ({ onDone }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Countdown runs from mount — independent of whether the ad media actually loads,
+  // so the skip timer never gets stuck at 15 when there is no fill / the video errors.
   useEffect(() => {
-    if (!mediaUrl) return;
     const t0 = Date.now();
-    shownRef.current = 0;
-    const tick = setInterval(() => { shownRef.current = Date.now() - t0; setElapsed(e => e + 1); }, 1000);
-    // hard cap: ad stuck/not playing? dismiss after 20s total
+    const tick = setInterval(() => {
+      shownRef.current = Date.now() - t0;
+      setElapsed(Math.floor(shownRef.current / 1000));
+    }, 250);
+    return () => clearInterval(tick);
+  }, []);
+  // hard cap: ad stuck/not playing? dismiss after 20s total (only while an ad should be showing)
+  useEffect(() => {
     const kill = setTimeout(finish, 20000);
-    return () => { clearInterval(tick); clearTimeout(kill); };
-  }, [mediaUrl]);
+    return () => clearTimeout(kill);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (gone) return null;
 
