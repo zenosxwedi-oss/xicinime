@@ -95,7 +95,7 @@ export default function DbHome() {
                 {items[0].episodes && <span style={chipSmall}>{items[0].episodes} ep</span>}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Link to={`/anime/mal-${items[0].malId}`} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>📖 Info</Link>
+                <Link to={`/anime/mal-${items[0].malId}`} state={{ title: items[0].title, poster: items[0].poster, score: items[0].score, type: items[0].type, episodes: items[0].episodes, year: items[0].year }} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>📖 Info</Link>
                 <a href={`${STREAM}/anime/mal-${items[0].malId}`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 13 }}>▶ Tonton</a>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function DbHome() {
       <div style={gridStyle}>
         {shown.map((a) => (
           <article key={a.malId} style={anilistCard}>
-            <Link to={`/anime/mal-${a.malId}`} style={coverWrap}>
+            <Link to={`/anime/mal-${a.malId}`} state={{ title: a.title, poster: a.poster, score: a.score, type: a.type, episodes: a.episodes, year: a.year }} style={coverWrap}>
               <img src={a.poster} alt={a.title} loading="lazy" style={coverImg} />
               {a.score && <span style={{ ...scoreBadge, background: scoreColor(a.score) }}>{a.score}</span>}
             </Link>

@@ -8,7 +8,13 @@ const STREAM = 'https://anime.nusanime.web.id';
 export default function DbDetail() {
   const { animeId } = useParams();
   const malId = (animeId || '').replace(/^mal-/, '');
-  const [a, setA] = useState(null);
+  const pre = (typeof window !== 'undefined' && window.history?.state?.usr) || {};
+  const [a, setA] = useState(pre.title ? {
+    title: pre.title, title_english: null, score: pre.score, rank: null,
+    type: pre.type, episodes: pre.episodes, status: null, duration: null,
+    season: null, year: pre.year, studios: [], producers: [], genres: [],
+    synopsis: null, images: { jpg: { large_image_url: pre.poster, image_url: pre.poster } },
+  } : null);
   const [eps, setEps] = useState([]);
   const [err, setErr] = useState(false);
 
@@ -21,12 +27,16 @@ export default function DbDetail() {
         try {
           const ctl = new AbortController();
           const to = setTimeout(() => ctl.abort(), 8000);
-          const r = await fetch(`${JIKAN}/anime/${malId}/full`, { signal: ctl.signal });
+          let r = await fetch(`${JIKAN}/anime/${malId}/full`, { signal: ctl.signal });
           clearTimeout(to);
+          if (r.status === 429) { await new Promise((res) => setTimeout(res, 1200)); r = await fetch(`${JIKAN}/anime/${malId}/full`); }
           const j = await r.json();
           if (j?.data && !dead) setA(j.data);
           try {
-            const r2 = await fetch(`${JIKAN}/anime/${malId}/episodes`);
+            const c2 = new AbortController();
+            const t2 = setTimeout(() => c2.abort(), 5000);
+            const r2 = await fetch(`${JIKAN}/anime/${malId}/episodes`, { signal: c2.signal });
+            clearTimeout(t2);
             const j2 = await r2.json();
             if (!dead) setEps(j2?.data || []);
           } catch {}
@@ -72,7 +82,12 @@ export default function DbDetail() {
       <a href="/" className="btn btn-primary">🏠 Ke Beranda</a>
     </div>
   );
-  if (!a) return <div className="main-container"><p style={{ padding: 40, color: 'var(--color-text-muted)' }}>Memuat…</p></div>;
+  if (!a) return (
+    <div className="main-container" style={{ maxWidth: 900, margin: '0 auto', padding: '20px 12px' }}>
+      <div style={{ height: 260, borderRadius: 16, background: 'linear-gradient(110deg, var(--color-surface) 30%, var(--color-surface-raised, rgba(255,255,255,0.07)) 50%, var(--color-surface) 70%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+      <p style={{ color: 'var(--color-text-dim)', fontSize: 13, textAlign: 'center', marginTop: 14 }}>Memuat detail…</p>
+    </div>
+  );
 
   const total = a.episodes || eps.length || 0;
   const banner = a.images?.jpg?.large_image_url;
