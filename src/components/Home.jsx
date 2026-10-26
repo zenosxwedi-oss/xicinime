@@ -67,8 +67,8 @@ const Home = () => {
       const sameCompleted = sameCompletedRes?.data?.animeList || [];
 
       setHomeData({
-        ongoing: mergeAnimeLists(otakOngoing, sameOngoing, 'Ongoing'),
-        completed: mergeAnimeLists(otakCompleted, sameCompleted, 'Completed'),
+        ongoing: mergeAnimeLists(sameOngoing, otakOngoing, 'Ongoing'),
+        completed: mergeAnimeLists(sameCompleted, otakCompleted, 'Completed'),
       });
       setDonghuaData({
         ongoing: donghuaOngoingRes?.ongoing_donghua || [],

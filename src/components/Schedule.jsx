@@ -18,11 +18,14 @@ const mergeScheduleLists = (list1, list2) => {
     map.set(key, { ...a, providers: ['otakudesu'], provider: 'otakudesu' });
   });
 
+  const BAD_HOSTS = ['otakudesu.blog', 'otakudesu.ltd', 'otakudesu.wiki', 'otakudesu.cc'];
+  const badPoster = (u) => typeof u === 'string' && BAD_HOSTS.some(h => u.includes(h));
   list2.forEach((a) => {
     const key = normalizeKey(a);
     const existing = map.get(key);
     if (existing) {
-      map.set(key, { ...existing, providers: ['otakudesu', 'samehadaku'] });
+      const poster = badPoster(existing.poster) && a.poster && !badPoster(a.poster) ? a.poster : existing.poster;
+      map.set(key, { ...existing, providers: ['otakudesu', 'samehadaku'], poster });
     } else {
       map.set(key, { ...a, providers: ['samehadaku'], provider: 'samehadaku' });
     }
@@ -50,7 +53,8 @@ const Schedule = () => {
         ]);
 
         const otakDays = Array.isArray(otakRes?.data) ? otakRes.data : [];
-        const sameDays = Array.isArray(sameRes?.data?.schedule) ? sameRes.data.schedule : [];
+        const sd = sameRes?.data || sameRes;
+        const sameDays = Array.isArray(sd?.schedule) ? sd.schedule : (Array.isArray(sd?.days) ? sd.days : (Array.isArray(sd) ? sd : []));
 
         const dayMap = new Map();
 
@@ -63,8 +67,8 @@ const Schedule = () => {
           dayMap.set(dayName, merged);
         };
 
-        otakDays.forEach(d => processDay(d, 'otakudesu'));
         sameDays.forEach(d => processDay(d, 'samehadaku'));
+        otakDays.forEach(d => processDay(d, 'otakudesu'));
 
         const mergedDays = DAY_ORDER
           .filter(d => dayMap.has(d))

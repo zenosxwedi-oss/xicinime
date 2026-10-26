@@ -39,13 +39,18 @@ export const mergeProviderLists = (
     });
   }
 
+  const BAD_HOSTS = ['otakudesu.blog', 'otakudesu.ltd', 'otakudesu.wiki', 'otakudesu.cc'];
+  const hasBadPoster = (u) => typeof u === 'string' && BAD_HOSTS.some(h => u.includes(h));
+
   for (const b of secondary) {
     const key = normalizeKey(b);
     if (!key) continue;
     const existing = map.get(key);
     if (existing) {
       const providers = Array.from(new Set([...(existing.providers || []), secondaryName]));
-      map.set(key, { ...existing, providers });
+      // Prefer a poster from a host that actually loads (samehadaku.how) over blocked otakudesu hosts
+      const poster = hasBadPoster(existing.poster) && b.poster && !hasBadPoster(b.poster) ? b.poster : existing.poster;
+      map.set(key, { ...existing, providers, poster });
     } else {
       map.set(key, {
         ...b,
