@@ -31,6 +31,7 @@ export default function DbDetail() {
       } catch {
         // Jikan unreachable/invalid — fallback: samehadaku detail (retry 3x, API is flaky)
         const slug = malId.replace(/^mal-/, '');
+        let got = false;
         for (let i = 0; i < 3; i++) {
           try {
             const r2 = await fetch(`https://www.sankavollerei.web.id/anime/samehadaku/anime/${slug}`, { headers: { Accept: 'application/json' } });
@@ -47,8 +48,9 @@ export default function DbDetail() {
               images: { jpg: { large_image_url: d.poster, image_url: d.poster } },
             });
             } else if (!dead && i === 2) setErr(true);
+            got = !!d;
           } catch { if (!dead && i === 2) setErr(true); }
-          if (a) break;
+          if (got) break;
           await new Promise((r) => setTimeout(r, 900));
         }
       }
