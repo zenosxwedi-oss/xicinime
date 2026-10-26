@@ -31,6 +31,7 @@ const parseVastMediaFile = (xml) => {
 const AdPreRoll = ({ onDone }) => {
   const videoRef = useRef(null);
   const [mediaUrl, setMediaUrl] = useState(null);
+  const [noFill, setNoFill] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [gone, setGone] = useState(false);
   const fired = useRef(false);
@@ -51,10 +52,10 @@ const AdPreRoll = ({ onDone }) => {
         if (!r.ok) throw new Error('vast ' + r.status);
         const xml = await r.text();
         const { media, impression } = parseVastMediaFile(xml);
-        if (!media) throw new Error('no media');
+        if (!media) { setNoFill(true); return; } // keep overlay with skip button
         if (impression) { try { fetch(impression, { mode: 'no-cors' }).catch(() => {}); } catch {} }
         if (!dead) setMediaUrl(media);
-      } catch { finish(); }
+      } catch { setNoFill(true); }
     })();
     return () => { dead = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +74,7 @@ const AdPreRoll = ({ onDone }) => {
   if (gone) return null;
 
   const remaining = Math.max(0, SKIP_AFTER - elapsed);
-  const canSkip = remaining <= 0;
+  const canSkip = remaining <= 0 || noFill;
 
   return (
     <div style={{
@@ -89,7 +90,7 @@ const AdPreRoll = ({ onDone }) => {
           playsInline
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           onEnded={finish}
-          onError={finish}
+          onError={() => setMediaUrl(null) /* keep overlay; user must click skip */}
         />
       )}
       <div style={{
@@ -100,7 +101,7 @@ const AdPreRoll = ({ onDone }) => {
           <span style={{
             background: 'rgba(0,0,0,0.75)', color: '#fff', borderRadius: 6,
             padding: '6px 12px', fontSize: 13, fontFamily: 'sans-serif',
-          }}>Iklan · Lewati dalam {remaining}s</span>
+          }}>{noFill ? 'Menyiapkan...' : `Iklan · Lewati dalam ${remaining}s`}</span>
         ) : (
           <button
             type="button"
