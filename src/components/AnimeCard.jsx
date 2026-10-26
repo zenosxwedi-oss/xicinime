@@ -84,7 +84,7 @@ const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint })
                   el.dataset.fb = '2';
                   const orig = el.getAttribute('data-orig') || '';
                   if (orig && !orig.includes('weserv')) {
-                    el.src = 'https://images.weserv.nl/?url=' + encodeURIComponent(orig);
+                    el.src = 'https://nusanime-web.dariwin81.workers.dev/img/' + orig;
                     el.dataset.fb = '1';
                     el.setAttribute('data-orig', orig);
                     setTimeout(() => {
