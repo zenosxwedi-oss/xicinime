@@ -12,7 +12,8 @@ const IS_MAINTENANCE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
 
 // Site mode: 'stream' = full streaming site (anime.nusanime.web.id)
 //            'db'     = MAL-style database (nusanime.web.id) — watch buttons go to the stream site
-export const SITE_MODE = import.meta.env.VITE_SITE_MODE || 'stream'
+export const SITE_MODE = import.meta.env.VITE_SITE_MODE ||
+  (typeof window !== 'undefined' && window.location.hostname === 'nusanime.web.id' ? 'db' : 'stream')
 export const STREAM_BASE = 'https://anime.nusanime.web.id'
 
 function WatchRedirect() {
