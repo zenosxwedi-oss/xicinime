@@ -1,15 +1,7 @@
-// Monetag service-worker integration (verification + monetization)
-self.options = {
-    "domain": "5gvci.com",
-    "zoneId": 12126556
-}
-self.lary = ""
-importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
-
 // Service Worker for Nusanime PWA
 // IMPORTANT: bump CACHE_VERSION on every release. Both the precache and the
 // runtime cache key derive from it, so old caches are wiped on activation.
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = `nusanime-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `nusanime-runtime-${CACHE_VERSION}`;
 

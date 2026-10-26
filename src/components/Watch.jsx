@@ -8,7 +8,6 @@ import '@videojs/react/video/skin.css';
 import WatchLoading from './WatchLoading';
 import AdBanner from './AdBanner';
 import EmbedPlayer from './EmbedPlayer';
-import AdPreRoll, { adDue } from './AdPreRoll';
 
 const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
 const devWarn = (...args) => { if (isDev) console.warn(...args); };
@@ -381,20 +380,6 @@ const Watch = () => {
   const isEmbeddable = videoUrl && (videoUrl.includes('blogger.com') || videoUrl.includes('mega.nz') || videoUrl.includes('youtube.com') || videoUrl.includes('drive.google.com'));
   const useVideoJs = videoUrl && !videoFailed && !isEmbeddable;
 
-  const [adPending, setAdPending] = useState(() => adDue());
-  // Re-show pre-roll on every episode change (user request: ad before each episode)
-  const adEpRef = useRef(null);
-  useEffect(() => {
-    if (adEpRef.current !== episodeId) {
-      adEpRef.current = episodeId;
-      setAdPending(adDue());
-    }
-  }, [episodeId]);
-  const showAd = adPending && !!videoUrl;
-  // pause switching overlay while ad is up
-  const adOverlay = showAd ? (
-    <AdPreRoll onDone={() => setAdPending(false)} />
-  ) : null;
 
   // ─── Render ───
   if (loading) return <div className="loading-container main-container"><div className="spinner" /><p>Memuat video...</p></div>;
@@ -432,7 +417,6 @@ const Watch = () => {
 
       {/* Video Player */}
       <div className="video-player-wrapper" style={{ position: 'relative' }}>
-        {adOverlay}
         {switching && <WatchLoading message="Mengganti server..." serverName={switchLabel} />}
         {videoUrl ? (
           useVideoJs ? (
