@@ -61,10 +61,10 @@ const Download = () => {
         // Fallback if GitHub API fails
         setRelease({
           version: 'v1.0',
-          url: `https://github.com/${GITHUB_REPO}/releases/download/v3.8.0/nusanime-v3.8.0-debug.apk`,
-          size: '~30 MB',
+          url: `https://github.com/${GITHUB_REPO}/releases/download/v3.8.1/nusanime-v3.8.1-debug.apk`,
+          size: '~21 MB',
           date: null,
-          name: 'nusanime-v3.8.0-debug.apk',
+          name: 'nusanime-v3.8.1-debug.apk',
         });
       })
       .finally(() => setLoading(false));
