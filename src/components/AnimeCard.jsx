@@ -73,7 +73,7 @@ const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint })
             {isCompletedBadge ? 'Completed' : 'Ongoing'}
           </span>
         )}
-        <img src={posterUrl} alt={title} className="poster" loading="lazy" decoding="async" width={200} height={280}
+        <img src={posterUrl} alt={title} className="poster" loading="lazy" decoding="async" width={200} height={280} data-orig={posterUrl}
           onError={(e) => {
             if (!e.currentTarget.dataset.fb) {
               e.currentTarget.dataset.fb = '1';
@@ -82,7 +82,20 @@ const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint })
               setTimeout(() => {
                 if (el.dataset.fb === '1') {
                   el.dataset.fb = '2';
-                  el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
+                  const orig = el.getAttribute('data-orig') || '';
+                  if (orig && !orig.includes('weserv')) {
+                    el.src = 'https://images.weserv.nl/?url=' + encodeURIComponent(orig);
+                    el.dataset.fb = '1';
+                    el.setAttribute('data-orig', orig);
+                    setTimeout(() => {
+                      if (el.dataset.fb === '1') {
+                        el.dataset.fb = '2';
+                        el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
+                      }
+                    }, 7000);
+                  } else {
+                    el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
+                  }
                 }
               }, 6000);
             }
