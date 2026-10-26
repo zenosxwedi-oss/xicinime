@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 // On finish/skip/error the ad disappears and the real player takes over.
 // Session-capped: max one ad per SESSION minutes per browser (so users are not spammed).
 
-const VAST_URL = 'https://s.magsrv.com/v1/vast.php?idz=6065738&ex-av=name';
+// Alternate between horizontal (in-stream) and vertical (fullscreen mobile) ad zones
+const VAST_URLS = [
+  'https://s.magsrv.com/v1/vast.php?idz=6065738&ex-av=name',
+  'https://s.magsrv.com/v1/vast.php?idzone=6065846&ex-av=name',
+];
+const pickVast = () => VAST_URLS[Math.floor(Math.random() * VAST_URLS.length)];
 const SKIP_AFTER = 15;          // seconds until the skip button appears
 const AD_CAP_MINUTES = 20;      // show at most one ad per this many minutes
 const CAP_KEY = 'nusanime_ad_last';
@@ -42,7 +47,7 @@ const AdPreRoll = ({ onDone }) => {
     let dead = false;
     (async () => {
       try {
-        const r = await fetch(VAST_URL, { headers: { Accept: 'application/xml' } });
+        const r = await fetch(pickVast(), { headers: { Accept: 'application/xml' } });
         if (!r.ok) throw new Error('vast ' + r.status);
         const xml = await r.text();
         const { media, impression } = parseVastMediaFile(xml);
