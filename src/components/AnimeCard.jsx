@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 // Poster rescue: when a poster fails (blocked host), look it up on samehadaku search API
 const _posterCache = new Map();
 const _inflight = new Map();
+// Known-dead poster hosts: skip rescue attempts entirely (anichin.moe is CF-blocked for all users/proxies)
+const DEAD_HOSTS = ['anichin.moe', 'otakudesu.blog', 'otakudesu.ltd', 'otakudesu.wiki', 'otakudesu.cc'];
+const isDeadPoster = (url) => !url || DEAD_HOSTS.some(h => url.includes(h));
+// Local SVG placeholder (via.placeholder.com is unreliable): gradient tile with the title text
+const placeholderSvg = (title) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a1a26"/><stop offset="1" stop-color="#2a1a3e"/></linearGradient></defs><rect width="200" height="280" fill="url(#g)"/><text x="100" y="120" fill="#ff3e9a" font-family="sans-serif" font-size="40" text-anchor="middle">🎬</text><foreignObject x="10" y="150" width="180" height="120"><div xmlns="http://www.w3.org/1999/xhtml" style="color:#c9c9d9;font-family:sans-serif;font-size:11px;text-align:center;word-wrap:break-word;">${(title || 'Anime').replace(/[<>&]/g, '')}</div></foreignObject></svg>`
+);
 const rescuePoster = async (title, cb) => {
   if (!title) return;
   const key = title.toLowerCase().trim();
@@ -78,32 +85,21 @@ const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint })
             {isCompletedBadge ? 'Completed' : 'Ongoing'}
           </span>
         )}
-        <img src={posterUrl} alt={title} className="poster" loading="lazy" decoding="async" width={200} height={280} data-orig={posterUrl}
+        <img src={isDeadPoster(posterUrl) ? placeholderSvg(title) : posterUrl} alt="" className="poster" loading="lazy" decoding="async" width={200} height={280} data-orig={posterUrl}
           onError={(e) => {
-            if (!e.currentTarget.dataset.fb) {
-              e.currentTarget.dataset.fb = '1';
-              const el = e.currentTarget;
-              rescuePoster(title, (url) => { el.src = url; delete el.dataset.fb; });
-              setTimeout(() => {
-                if (el.dataset.fb === '1') {
-                  el.dataset.fb = '2';
-                  const orig = el.getAttribute('data-orig') || '';
-                  if (orig && !orig.includes('weserv')) {
-                    el.src = 'https://nusanime-web.dariwin81.workers.dev/img/' + orig;
-                    el.dataset.fb = '1';
-                    el.setAttribute('data-orig', orig);
-                    setTimeout(() => {
-                      if (el.dataset.fb === '1') {
-                        el.dataset.fb = '2';
-                        el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
-                      }
-                    }, 7000);
-                  } else {
-                    el.src = 'https://via.placeholder.com/200x280/1a1a26/ff3e9a?text=' + encodeURIComponent((title || 'Anime').substring(0, 10));
-                  }
-                }
-              }, 6000);
-            }
+            const el = e.currentTarget;
+            const orig = el.getAttribute('data-orig') || '';
+            if (el.dataset.fb) return; // already handled once
+            // Dead host from the start: go straight to the styled placeholder (no useless retries)
+            if (isDeadPoster(orig)) { el.dataset.fb = '2'; el.src = placeholderSvg(title); return; }
+            el.dataset.fb = '1';
+            rescuePoster(title, (url) => { el.src = url; delete el.dataset.fb; });
+            setTimeout(() => {
+              if (el.dataset.fb === '1') {
+                el.dataset.fb = '2';
+                el.src = placeholderSvg(title);
+              }
+            }, 6000);
           }} />
         <div className="card-overlay">
           <span className="play-icon" aria-hidden>▶</span>
