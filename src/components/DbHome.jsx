@@ -71,6 +71,38 @@ export default function DbHome() {
         </p>
       </header>
 
+      {/* Hero banner (AniList-style featured) */}
+      {items.length > 0 && !letter && (
+        <div style={{
+          position: 'relative', borderRadius: 16, overflow: 'hidden', marginBottom: 18,
+          minHeight: 230, border: '1px solid var(--color-border)',
+        }}>
+          <img src={items[0].poster} alt="" style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+            filter: 'blur(14px) brightness(0.35)', transform: 'scale(1.2)',
+          }} />
+          <div style={{ position: 'relative', display: 'flex', gap: 18, padding: 22, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <img src={items[0].poster} alt={items[0].title}
+              style={{ width: 120, borderRadius: 12, boxShadow: '0 10px 30px rgba(0,0,0,0.6)' }} />
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <span style={{ fontSize: 11, letterSpacing: 2, color: 'var(--color-primary)', fontWeight: 800 }}>✨ UNGGULAN</span>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: '6px 0 4px', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
+                {items[0].title}
+              </h2>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                {items[0].score && <span style={chipSmall}>⭐ {items[0].score}</span>}
+                {items[0].type && <span style={chipSmall}>{items[0].type}</span>}
+                {items[0].episodes && <span style={chipSmall}>{items[0].episodes} ep</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Link to={`/anime/mal-${items[0].malId}`} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>📖 Info</Link>
+                <a href={`${STREAM}/anime/mal-${items[0].malId}`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 13 }}>▶ Tonton</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, margin: '8px 0 16px' }}>
         <button type="button" onClick={() => setLetter(null)} style={letter === null ? chipActive : chip}>Semua</button>
         {LETTERS.map((L) => (
@@ -78,36 +110,20 @@ export default function DbHome() {
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={gridStyle}>
         {shown.map((a) => (
-          <article key={a.malId} style={cardStyle}>
-            <Link to={`/anime/mal-${a.malId}`} style={{ flexShrink: 0 }}>
-              <img src={a.poster} alt={a.title} loading="lazy" style={posterStyle} />
+          <article key={a.malId} style={anilistCard}>
+            <Link to={`/anime/mal-${a.malId}`} style={coverWrap}>
+              <img src={a.poster} alt={a.title} loading="lazy" style={coverImg} />
+              {a.score && <span style={{ ...scoreBadge, background: scoreColor(a.score) }}>{a.score}</span>}
             </Link>
-            <div style={{ minWidth: 0 }}>
-              <Link to={`/anime/mal-${a.malId}`} style={{ textDecoration: 'none' }}>
-                <h2 style={titleStyle}>{a.title}</h2>
-              </Link>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                {a.score && <span style={chipSmall}>⭐ {a.score}</span>}
-                {a.type && <span style={chipSmall}>📺 {a.type}</span>}
-                {a.episodes && <span style={chipSmall}>Ep {a.episodes}</span>}
-                {a.year && <span style={chipSmall}>📅 {a.year}</span>}
-              </div>
-              {a.studios && (
-                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 6 }}>🏢 {a.studios}</div>
-              )}
-              {a.synopsis && (
-                <p style={{
-                  fontSize: 13, color: 'var(--color-text-dim)', margin: '0 0 10px',
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                  lineHeight: 1.5,
-                }}>{a.synopsis}</p>
-              )}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Link to={`/anime/mal-${a.malId}`} className="btn btn-secondary" style={btnSm}>📖 Baca Selengkapnya</Link>
-                <a href={`${STREAM}/anime/mal-${a.malId}`} className="btn btn-primary" style={btnSm}>▶ Tonton</a>
-              </div>
+            <Link to={`/anime/mal-${a.malId}`} style={{ textDecoration: 'none' }}>
+              <h3 style={anilistTitle}>{a.title}</h3>
+            </Link>
+            <div style={{ display: 'flex', gap: 5, fontSize: 11, color: 'var(--color-text-dim)', marginTop: 2 }}>
+              {a.type && <span>{a.type}</span>}
+              {a.episodes && <span>· {a.episodes} ep</span>}
+              {a.year && <span>· {a.year}</span>}
             </div>
           </article>
         ))}
@@ -125,10 +141,32 @@ export default function DbHome() {
   );
 }
 
-const cardStyle = { display: 'flex', gap: 14, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 14, padding: 14 };
-const posterStyle = { width: 96, height: 136, objectFit: 'cover', borderRadius: 10 };
-const titleStyle = { fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text)', margin: '0 0 6px' };
+
+
+
 const chip = { padding: '6px 10px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 12, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text-muted)' };
 const chipActive = { ...chip, background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)' };
 const chipSmall = { fontSize: 12, padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.06)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' };
 const btnSm = { padding: '7px 14px', fontSize: 12 };
+
+const gridStyle = {
+  display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 14,
+};
+const anilistCard = { position: 'relative' };
+const coverWrap = { position: 'relative', display: 'block', borderRadius: 10, overflow: 'hidden', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' };
+const coverImg = { width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block' };
+const anilistTitle = {
+  fontSize: 12.5, fontWeight: 700, color: 'var(--color-text)', margin: '7px 0 0',
+  lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+};
+const scoreBadge = {
+  position: 'absolute', top: 6, right: 6, color: '#fff', fontWeight: 800, fontSize: 11,
+  padding: '3px 7px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+};
+function scoreColor(s) {
+  if (s >= 8) return '#4CAF50'; // green
+  if (s >= 7) return '#8BC34A';
+  if (s >= 6) return '#FFC107'; // yellow
+  if (s >= 5) return '#FF9800';
+  return '#F44336';
+}

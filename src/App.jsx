@@ -3,6 +3,7 @@ import { Routes, Route, useParams } from 'react-router-dom'
 import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
 const DbDetail = lazy(() => import('./components/DbDetail'))
+import DbNavbar from './components/DbNavbar'
 import Header from './components/Header'
 import './App.css'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -68,7 +69,7 @@ function App() {
           <div className="floating-shape floating-shape--2"></div>
           <div className="floating-shape floating-shape--3"></div>
         </div>
-        <Header />
+        {SITE_MODE === 'db' ? <DbNavbar /> : <Header />}
         <InstallBanner />
         <main id="main-content">
           <ErrorBoundary>
