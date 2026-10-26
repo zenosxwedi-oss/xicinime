@@ -16,7 +16,10 @@ export default function DbDetail() {
     let dead = false;
     (async () => {
       try {
-        const r = await fetch(`${JIKAN}/anime/${malId}/full`);
+        const ctl = new AbortController();
+        const to = setTimeout(() => ctl.abort(), 8000);
+        const r = await fetch(`${JIKAN}/anime/${malId}/full`, { signal: ctl.signal });
+        clearTimeout(to);
         const j = await r.json();
         if (!dead) setA(j?.data ?? null);
       } catch {

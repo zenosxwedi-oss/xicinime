@@ -22,7 +22,10 @@ export default function DbHome() {
   const load = async (p) => {
     setLoading(true);
     try {
-      const r = await fetch(`${JIKAN}/anime?order_by=title&sort=asc&sfw=true&page=${p}&limit=25`);
+      const ctl = new AbortController();
+      const to = setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(`${JIKAN}/anime?order_by=title&sort=asc&sfw=true&page=${p}&limit=25`, { signal: ctl.signal });
+      clearTimeout(to);
       const j = await r.json();
       const list = (j?.data || []).map((x) => ({
         malId: x.mal_id,
