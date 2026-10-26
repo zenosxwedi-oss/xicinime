@@ -82,7 +82,7 @@ const Download = () => {
 
       {/* Hero */}
       <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-        <img src="/logo.png" alt="Xicinime" style={{ width: '90px', height: '90px', borderRadius: '22px', marginBottom: '16px', boxShadow: '0 8px 32px rgba(147,51,234,0.4)' }} />
+        <img src="/logo.png" alt="Nusanime" style={{ width: '90px', height: '90px', borderRadius: '22px', marginBottom: '16px', boxShadow: '0 8px 32px rgba(147,51,234,0.4)' }} />
         <h1 style={{ fontSize: '1.8rem', fontWeight: 900, marginBottom: '8px', background: 'linear-gradient(135deg,#9333ea,#c084fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Nusanime App
         </h1>

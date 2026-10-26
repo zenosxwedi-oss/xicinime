@@ -36,7 +36,7 @@ export default function MaintenancePage() {
         <div style={styles.divider} />
 
         <p style={styles.footer}>
-          <span style={styles.logo}>Xicinime</span> &mdash; We&apos;ll be back soon!
+          <span style={styles.logo}>Nusanime</span> &mdash; We&apos;ll be back soon!
         </p>
       </div>
     </div>

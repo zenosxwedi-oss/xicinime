@@ -165,11 +165,11 @@ const Home = () => {
           <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-primary)', borderRadius: '20px', padding: '32px 28px', maxWidth: '440px', width: '100%', textAlign: 'center', position: 'relative', boxShadow: '0 0 40px rgba(147,51,234,0.3)' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowDonatePopup(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
             <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>☕</div>
-            <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 900, marginBottom: '8px' }}>Suka Xicinime?</h2>
+            <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 900, marginBottom: '8px' }}>Suka Nusanime?</h2>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: '20px', lineHeight: 1.7 }}>
               Kalau kamu suka nonton di sini, boleh dong trakteer kita biar makin semangat update! 💜
             </p>
-            <a href="https://trakteer.id/xicinime/tip" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '10px', padding: '14px', fontSize: 'var(--text-base)', borderRadius: '12px' }}>
+            <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '10px', padding: '14px', fontSize: 'var(--text-base)', borderRadius: '12px' }}>
               ☕ Trakteer Sekarang
             </a>
             <button onClick={() => setShowDonatePopup(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-dim)', fontSize: 'var(--text-xs)', cursor: 'pointer', marginTop: '4px', padding: '8px' }}>Nanti aja deh →</button>
@@ -181,7 +181,7 @@ const Home = () => {
       <header className="page-header home-hero home-hero--streaming">
         <div className="home-hero-copy">
           <div className="home-hero-eyebrow">✨ Gratis · Tanpa Login · Multi-Provider</div>
-          <h1 className="main-title text-gradient" data-text="XICINIME">XICINIME</h1>
+          <h1 className="main-title text-gradient" data-text="NUSANIME">NUSANIME</h1>
           <p className="subtitle">Nonton anime &amp; donghua sub Indo. Semua provider, satu tempat.</p>
           <div className="home-hero-actions">
             <Link to="/search" className="btn btn-primary btn-large">🔍 Cari Anime</Link>
@@ -300,7 +300,7 @@ const Home = () => {
         <section className="section">
           <div className="section-header">
             <h2 className="section-title">💜 Top Donatur</h2>
-            <a href="https://trakteer.id/xicinime/tip" target="_blank" rel="noopener noreferrer" className="view-all">Donasi juga →</a>
+            <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="view-all">Donasi juga →</a>
           </div>
           <div className="donor-list">
             {topDonors.slice(0, 5).map((donor, idx) => {
@@ -320,8 +320,8 @@ const Home = () => {
                 </div>
               );
             })}
-            <a href="https://trakteer.id/xicinime/tip" target="_blank" rel="noopener noreferrer" className="donor-cta-row">
-              <span>☕ Trakteer Xicinime</span>
+            <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="donor-cta-row">
+              <span>☕ Trakteer Nusanime</span>
               <span className="donor-cta-arrow">→</span>
             </a>
           </div>

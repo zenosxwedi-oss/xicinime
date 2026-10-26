@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 /**
- * App Download Banner — shows on mobile, links to native Xicinime app download.
+ * App Download Banner — shows on mobile, links to native Nusanime app download.
  */
 const InstallBanner = () => {
   const [show, setShow] = useState(false);
@@ -45,12 +45,12 @@ const InstallBanner = () => {
     }}>
       <img
         src="/logo.png"
-        alt="Xicinime"
+        alt="Nusanime"
         style={{ width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0 }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '2px' }}>
-          📱 Download App Xicinime
+          📱 Download App Nusanime
         </div>
         <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
           Nonton lebih nyaman tanpa buka browser

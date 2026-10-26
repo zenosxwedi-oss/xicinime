@@ -8,7 +8,7 @@ const Footer = () => {
   const year = new Date().getFullYear();
 
   const handleSendReport = () => {
-    const subject = encodeURIComponent('[Xicinime] Laporan Bug');
+    const subject = encodeURIComponent('[Nusanime] Laporan Bug');
     const body = encodeURIComponent(`Bug:\n\n${reportText || '(Jelaskan masalah)'}\n\n---\nURL: ${window.location.href}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setShowReport(false);
@@ -23,13 +23,13 @@ const Footer = () => {
           {/* Brand */}
           <div className="footer-brand-section">
             <Link to="/" className="footer-brand-link">
-              <img src="/logo.png" alt="Xicinime" className="footer-logo-img" />
-              <span className="footer-brand-name">Xicinime</span>
+              <img src="/logo.png" alt="Nusanime" className="footer-logo-img" />
+              <span className="footer-brand-name">Nusanime</span>
             </Link>
             <p className="footer-tagline">
               Tempat nonton anime & donghua sub Indo paling lengkap. Gratis, kualitas terbaik.
             </p>
-            <a href="https://trakteer.id/xicinime/tip" target="_blank" rel="noopener noreferrer" className="footer-donate-btn">
+            <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="footer-donate-btn">
               ☕ Dukung Kami
             </a>
           </div>
@@ -53,14 +53,14 @@ const Footer = () => {
             <div className="footer-col">
               <h4 className="footer-col-title">Bantuan</h4>
               <button type="button" className="footer-link footer-link-btn" onClick={() => setShowReport(true)}>Lapor Bug</button>
-              <a href="https://trakteer.id/xicinime/tip" target="_blank" rel="noopener noreferrer" className="footer-link">Donasi</a>
+              <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="footer-link">Donasi</a>
             </div>
           </div>
 
           {/* Bottom */}
           <div className="footer-bottom">
-            <p className="footer-copy">© {year} Xicinime. All rights reserved.</p>
-            <p className="footer-disclaimer">Xicinime adalah platform streaming anime gratis. Kami tidak menyimpan file video di server kami.</p>
+            <p className="footer-copy">© {year} Nusanime. All rights reserved.</p>
+            <p className="footer-disclaimer">Nusanime adalah platform streaming anime gratis. Kami tidak menyimpan file video di server kami.</p>
           </div>
         </div>
       </footer>
