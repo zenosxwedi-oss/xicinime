@@ -382,6 +382,14 @@ const Watch = () => {
   const useVideoJs = videoUrl && !videoFailed && !isEmbeddable;
 
   const [adPending, setAdPending] = useState(() => adDue());
+  // Re-show pre-roll on every episode change (user request: ad before each episode)
+  const adEpRef = useRef(null);
+  useEffect(() => {
+    if (adEpRef.current !== episodeId) {
+      adEpRef.current = episodeId;
+      setAdPending(adDue());
+    }
+  }, [episodeId]);
   const showAd = adPending && !!videoUrl;
   // pause switching overlay while ad is up
   const adOverlay = showAd ? (

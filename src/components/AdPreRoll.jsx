@@ -10,12 +10,7 @@ const SKIP_AFTER = 15;          // seconds until the skip button appears
 const AD_CAP_MINUTES = 20;      // show at most one ad per this many minutes
 const CAP_KEY = 'nusanime_ad_last';
 
-export const adDue = () => {
-  try {
-    const last = Number(localStorage.getItem(CAP_KEY) || 0);
-    return (Date.now() - last) > AD_CAP_MINUTES * 60 * 1000;
-  } catch { return true; }
-};
+export const adDue = () => true; // always show pre-roll (user request); ExoClick caps server-side
 
 const parseVastMediaFile = (xml) => {
   try {
@@ -39,10 +34,6 @@ const AdPreRoll = ({ onDone }) => {
   const finish = () => {
     if (fired.current) return;
     fired.current = true;
-    // only arm the 20-min cap if the ad actually displayed for a while (real fill)
-    if (shownRef.current > 2000) {
-      try { localStorage.setItem(CAP_KEY, String(Date.now())); } catch {}
-    }
     setGone(true);
     if (onDone) onDone();
   };
