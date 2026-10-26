@@ -15,7 +15,13 @@ export default function DbDetail() {
   useEffect(() => {
     let dead = false;
     (async () => {
+      const isNumeric = /^\d+$/.test(malId);
+      if (!isNumeric) {
+        // not a MAL id — go straight to samehadaku fallback path
+        // (reuse the catch block by triggering it)
+      }
       try {
+        if (!isNumeric) throw new Error('non-mal');
         const ctl = new AbortController();
         const to = setTimeout(() => ctl.abort(), 8000);
         const r = await fetch(`${JIKAN}/anime/${malId}/full`, { signal: ctl.signal });
@@ -23,12 +29,14 @@ export default function DbDetail() {
         const j = await r.json();
         if (!dead) setA(j?.data ?? null);
       } catch {
-        // Jikan unreachable — fallback: samehadaku detail by same slug
-        try {
-          const r2 = await fetch(`https://www.sankavollerei.web.id/anime/samehadaku/anime/${malId.replace(/^mal-/, '')}`, { headers: { Accept: 'application/json' } });
-          const j2 = await r2.json();
-          const d = j2?.data;
-          if (d && !dead) {
+        // Jikan unreachable/invalid — fallback: samehadaku detail (retry 3x, API is flaky)
+        const slug = malId.replace(/^mal-/, '');
+        for (let i = 0; i < 3; i++) {
+          try {
+            const r2 = await fetch(`https://www.sankavollerei.web.id/anime/samehadaku/anime/${slug}`, { headers: { Accept: 'application/json' } });
+            const j2 = await r2.json();
+            const d = j2?.data;
+            if (d && !dead) {
             setA({
               title: d.title, title_english: null, score: d.score?.toString?.(), rank: null,
               type: d.type, episodes: d.episodes ? Number(d.episodes) : null, status: d.status,
@@ -38,8 +46,11 @@ export default function DbDetail() {
               synopsis: d.synopsis,
               images: { jpg: { large_image_url: d.poster, image_url: d.poster } },
             });
-          } else if (!dead) setErr(true);
-        } catch { if (!dead) setErr(true); }
+            } else if (!dead && i === 2) setErr(true);
+          } catch { if (!dead && i === 2) setErr(true); }
+          if (a) break;
+          await new Promise((r) => setTimeout(r, 900));
+        }
       }
       try {
         const r2 = await fetch(`${JIKAN}/anime/${malId}/episodes`);
