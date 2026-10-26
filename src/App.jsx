@@ -5,7 +5,6 @@ import Header from './components/Header'
 import './App.css'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
-import ThemeSelector from './components/ThemeSelector'
 import InstallBanner from './components/InstallBanner'
 import MaintenancePage from './components/MaintenancePage'
 
@@ -54,7 +53,6 @@ function App() {
           <div className="floating-shape floating-shape--3"></div>
         </div>
         <Header />
-        <ThemeSelector />
         <InstallBanner />
         <main id="main-content">
           <ErrorBoundary>
