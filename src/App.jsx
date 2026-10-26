@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useParams } from 'react-router-dom'
 import Home from './components/Home'
 import Header from './components/Header'
 import './App.css'
@@ -9,6 +9,19 @@ import InstallBanner from './components/InstallBanner'
 import MaintenancePage from './components/MaintenancePage'
 
 const IS_MAINTENANCE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
+
+// Site mode: 'stream' = full streaming site (anime.nusanime.web.id)
+//            'db'     = MAL-style database (nusanime.web.id) — watch buttons go to the stream site
+export const SITE_MODE = import.meta.env.VITE_SITE_MODE || 'stream'
+export const STREAM_BASE = 'https://anime.nusanime.web.id'
+
+function WatchRedirect() {
+  const { episodeId } = useParams()
+  if (typeof window !== 'undefined') {
+    window.location.replace(`${STREAM_BASE}/watch/${episodeId}`)
+  }
+  return null
+}
 
 // Code-split the heavy / less-frequent routes. The video player
 // pulls in @videojs/react which is by far the biggest dep.
@@ -74,7 +87,7 @@ function App() {
                 <Route path="/search" element={<UnifiedSearch />} />
                 <Route path="/anime/:animeId" element={<AnimeDetail />} />
                 <Route path="/anime/:provider/:animeId" element={<AnimeDetail />} />
-                <Route path="/watch/:episodeId" element={<Watch />} />
+                <Route path="/watch/:episodeId" element={SITE_MODE === 'db' ? <WatchRedirect /> : <Watch />} />
                 <Route path="/download" element={<Download />} />
                   <Route path="/movie" element={<Movie />} />
                   <Route path="/live-action" element={<LiveAction />} />
