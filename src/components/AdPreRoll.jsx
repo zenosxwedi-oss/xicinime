@@ -35,10 +35,14 @@ const AdPreRoll = ({ onDone }) => {
   const [gone, setGone] = useState(false);
   const fired = useRef(false);
 
+  const shownRef = useRef(0);
   const finish = () => {
     if (fired.current) return;
     fired.current = true;
-    try { localStorage.setItem(CAP_KEY, String(Date.now())); } catch {}
+    // only arm the 20-min cap if the ad actually displayed for a while (real fill)
+    if (shownRef.current > 2000) {
+      try { localStorage.setItem(CAP_KEY, String(Date.now())); } catch {}
+    }
     setGone(true);
     if (onDone) onDone();
   };
@@ -62,10 +66,12 @@ const AdPreRoll = ({ onDone }) => {
 
   useEffect(() => {
     if (!mediaUrl) return;
-    const t = setInterval(() => setElapsed(e => e + 1), 1000);
+    const t0 = Date.now();
+    shownRef.current = 0;
+    const tick = setInterval(() => { shownRef.current = Date.now() - t0; setElapsed(e => e + 1); }, 1000);
     // hard cap: ad stuck/not playing? dismiss after 20s total
     const kill = setTimeout(finish, 20000);
-    return () => { clearInterval(t); clearTimeout(kill); };
+    return () => { clearInterval(tick); clearTimeout(kill); };
   }, [mediaUrl]);
 
   if (gone) return null;
