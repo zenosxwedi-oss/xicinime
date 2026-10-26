@@ -10,11 +10,16 @@ const rescuePoster = async (title, cb) => {
   if (_inflight.has(key)) { _inflight.get(key).push(cb); return; }
   const cbs = [cb]; _inflight.set(key, cbs);
   try {
-    const r = await fetch('https://www.sankavollerei.web.id/anime/samehadaku/search?q=' + encodeURIComponent(title), { headers: { Accept: 'application/json' } });
-    const j = await r.json();
-    const list = j?.data?.animeList || [];
     let poster = null;
-    if (list.length > 0 && list[0].poster && !list[0].poster.includes('otakudesu')) poster = list[0].poster;
+    for (const src of ['samehadaku', 'donghua']) {
+      try {
+        const r = await fetch('https://www.sankavollerei.web.id/anime/' + src + '/search?q=' + encodeURIComponent(title), { headers: { Accept: 'application/json' } });
+        if (!r.ok) continue;
+        const j = await r.json();
+        const list = j?.data?.animeList || [];
+        if (list.length > 0 && list[0].poster && !list[0].poster.includes('otakudesu')) { poster = list[0].poster; break; }
+      } catch {}
+    }
     _posterCache.set(key, poster);
     cbs.forEach(cb => { if (poster) cb(poster); });
   } catch { _posterCache.set(key, null); }
