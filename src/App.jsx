@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react'
-import MonetagInterstitial from './components/MonetagInterstitial';
 import { Routes, Route } from 'react-router-dom'
 import Home from './components/Home'
 import Header from './components/Header'
@@ -59,8 +58,7 @@ function App() {
         <InstallBanner />
         <main id="main-content">
           <ErrorBoundary>
-            <MonetagInterstitial />
-          <Suspense fallback={<RouteFallback />}>
+            <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/ongoing" element={<Ongoing />} />
