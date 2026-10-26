@@ -71,12 +71,8 @@ const AdPreRoll = ({ onDone }) => {
     }, 250);
     return () => clearInterval(tick);
   }, []);
-  // hard cap: ad stuck/not playing? dismiss after 20s total (only while an ad should be showing)
-  useEffect(() => {
-    const kill = setTimeout(finish, 20000);
-    return () => clearTimeout(kill);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // NOTE: no auto-kill timer — once the skip button appears it must STAY until clicked.
+  // The overlay only closes on: ad ended naturally OR user taps skip.
 
   if (gone) return null;
 
