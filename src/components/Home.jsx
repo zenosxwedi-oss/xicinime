@@ -20,7 +20,6 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [watchHistory] = useState(() => getWatchHistory());
   const [topDonors, setTopDonors] = useState([]);
-  const [showDonatePopup, setShowDonatePopup] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,15 +95,9 @@ const Home = () => {
       { timeout: 5000 },
     );
 
-    // Donate popup — delayed further on mobile for less disruption
-    const timer = setTimeout(() => {
-      if (!cancelled) setShowDonatePopup(true);
-    }, 4000);
-
     return () => {
       cancelled = true;
       cancelIdleCallback(idleId);
-      clearTimeout(timer);
     };
   }, []);
 
@@ -159,24 +152,6 @@ const Home = () => {
 
   return (
     <div className="home-container main-container">
-      {/* Donate Popup */}
-      {showDonatePopup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', backdropFilter: 'blur(4px)' }} onClick={() => setShowDonatePopup(false)}>
-          <div style={{ background: 'var(--color-surface)', border: '2px solid var(--color-primary)', borderRadius: '20px', padding: '32px 28px', maxWidth: '440px', width: '100%', textAlign: 'center', position: 'relative', boxShadow: '0 0 40px rgba(147,51,234,0.3)' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowDonatePopup(false)} style={{ position: 'absolute', top: '12px', right: '16px', background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.3rem', cursor: 'pointer' }}>✕</button>
-            <div style={{ fontSize: '3.5rem', marginBottom: '12px' }}>☕</div>
-            <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 900, marginBottom: '8px' }}>Suka Nusanime?</h2>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: '20px', lineHeight: 1.7 }}>
-              Kalau kamu suka nonton di sini, boleh dong trakteer kita biar makin semangat update! 💜
-            </p>
-            <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '10px', padding: '14px', fontSize: 'var(--text-base)', borderRadius: '12px' }}>
-              ☕ Trakteer Sekarang
-            </a>
-            <button onClick={() => setShowDonatePopup(false)} style={{ background: 'none', border: 'none', color: 'var(--color-text-dim)', fontSize: 'var(--text-xs)', cursor: 'pointer', marginTop: '4px', padding: '8px' }}>Nanti aja deh →</button>
-          </div>
-        </div>
-      )}
-
       {/* Hero */}
       <header className="page-header home-hero home-hero--streaming">
         <div className="home-hero-copy">

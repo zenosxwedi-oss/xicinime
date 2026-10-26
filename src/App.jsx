@@ -8,7 +8,6 @@ import ErrorBoundary from './components/ErrorBoundary'
 import ThemeSelector from './components/ThemeSelector'
 import InstallBanner from './components/InstallBanner'
 import MaintenancePage from './components/MaintenancePage'
-import BugReport from './components/BugReport';
 
 const IS_MAINTENANCE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
 
@@ -59,7 +58,6 @@ function App() {
         <InstallBanner />
         <main id="main-content">
           <ErrorBoundary>
-            <BugReport />
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Home />} />
