@@ -59,7 +59,12 @@ const Footer = () => {
 
           {/* Bottom */}
           <div className="footer-bottom">
-            <p className="footer-copy">© {year} Nusanime. All rights reserved.</p>
+            <p className="footer-copy" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Link to="/privacy" className="footer-link">Kebijakan Privasi</Link>
+              <Link to="/disclaimer" className="footer-link">Disclaimer</Link>
+              <Link to="/about" className="footer-link">Tentang</Link>
+              <span>© {year} Nusanime</span>
+            </p>
             <p className="footer-disclaimer">Nusanime adalah platform streaming anime gratis. Kami tidak menyimpan file video di server kami.</p>
           </div>
         </div>

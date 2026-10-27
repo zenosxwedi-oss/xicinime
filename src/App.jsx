@@ -4,6 +4,7 @@ import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
 const DbDetail = lazy(() => import('./components/DbDetail'))
 import DbNavbar from './components/DbNavbar'
+import LegalPage from './components/LegalPage'
 import Header from './components/Header'
 import './App.css'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -96,6 +97,7 @@ function App() {
                 <Route path="/download" element={<Download />} />
                   <Route path="/movie" element={<Movie />} />
                   <Route path="/live-action" element={<LiveAction />} />
+                <Route path="/:page(privacy|disclaimer|about)" element={<LegalPage />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
