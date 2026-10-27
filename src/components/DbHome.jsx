@@ -169,4 +169,8 @@ function scoreColor(s) {
   if (s >= 6) return '#FFC107'; // yellow
   if (s >= 5) return '#FF9800';
   return '#F44336';
-}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, padding: '18px 0 26px' }}>
+        <span style={{ fontSize: 12, opacity: 0.6 }}>👀 Pengunjung:</span>
+        <img src="https://count.getloli.com/get/@nusanime-web?theme=moebooru" alt="jumlah pengunjung" style={{ height: 28 }} loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+      </div>
+      }

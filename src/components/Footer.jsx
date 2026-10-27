@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 
-const VisitorCounter = () => {
+export const VisitorCounter = () => {
   const [ok, setOk] = useState(true);
   if (!ok) return null;
   return (
