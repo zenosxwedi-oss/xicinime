@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, useParams, Navigate } from 'react-router-dom'
 import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
+const DbSchedule = lazy(() => import('./components/DbSchedule'))
 const DbDetail = lazy(() => import('./components/DbDetail'))
 import DbNavbar from './components/DbNavbar'
 import LegalPage from './components/LegalPage'
@@ -76,7 +77,8 @@ function App() {
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
-                <Route path="/" element={SITE_MODE === 'db' ? <DbHome /> : <Home />} />
+                <Route path="/" element={SITE_MODE === 'db' ? <DbSchedule /> : <Home />} />
+                <Route path="/list" element={SITE_MODE === 'db' ? <DbHome /> : <Home />} />
                 <Route path="/ongoing" element={<Ongoing />} />
                 <Route path="/completed" element={<Completed />} />
                 <Route path="/donghua-ongoing" element={<DonghuaOngoing />} />

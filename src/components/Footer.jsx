@@ -1,20 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 
-export const VisitorCounter = () => {
-  const [ok, setOk] = useState(true);
-  if (!ok) return null;
+export const VisitorCounter = ({ inline = false }) => {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    const hit = () => {
+      fetch('https://stats.nusanime.web.id/hit', { mode: 'cors' }).catch(() => {});
+    };
+    try {
+      if (!sessionStorage.getItem('__vcHit')) {
+        sessionStorage.setItem('__vcHit', '1');
+        hit();
+      }
+    } catch { hit(); }
+    fetch('https://stats.nusanime.web.id/get', { mode: 'cors' })
+      .then((r) => r.json())
+      .then((d) => { if (!dead) setStats(d); })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, []);
+  if (!stats) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-      <span style={{ fontSize: 12, color: 'var(--color-text-muted, #888)' }}>👀 Pengunjung:</span>
-      <img
-        src="https://count.getloli.com/get/@nusanime-web?theme=moebooru"
-        alt="jumlah pengunjung"
-        style={{ height: 28 }}
-        loading="lazy"
-        onError={() => setOk(false)}
-      />
+    <div style={{ fontSize: 12, color: 'var(--color-text-muted, #888)', marginTop: inline ? 0 : 10, display: 'flex', justifyContent: inline ? 'center' : 'flex-start', gap: 4, padding: inline ? '18px 0 26px' : 0 }}>
+      👀 Pengunjung hari ini: <b style={{ color: 'var(--color-text, #eee)' }}>{stats.today ?? 0}</b>
+      {' · '}Total: <b style={{ color: 'var(--color-text, #eee)' }}>{stats.total ?? 0}</b>
     </div>
   );
 };

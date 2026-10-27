@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { VisitorCounter } from './Footer';
 
 // Nusanime.web.id — database site powered by MyAnimeList data (Jikan API).
 // News-style list A-Z + MAL-style detail; Tonton → anime.nusanime.web.id
