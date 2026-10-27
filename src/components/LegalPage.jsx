@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 // Legal/info pages for AdSense compliance: Privacy Policy, Disclaimer, About.
 const SHELL = {
@@ -14,7 +14,7 @@ function P({ children }) {
 }
 
 export default function LegalPage() {
-  const { page } = useParams();
+  const page = useLocation().pathname.replace('/', '');
 
   if (page === 'privacy') {
     return (

@@ -97,7 +97,9 @@ function App() {
                 <Route path="/download" element={<Download />} />
                   <Route path="/movie" element={<Movie />} />
                   <Route path="/live-action" element={<LiveAction />} />
-                <Route path="/:page(privacy|disclaimer|about)" element={<LegalPage />} />
+                <Route path="/privacy" element={<LegalPage />} />
+                <Route path="/disclaimer" element={<LegalPage />} />
+                <Route path="/about" element={<LegalPage />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>
