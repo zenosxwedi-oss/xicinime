@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { VisitorCounter } from './Footer';
 
 // Beranda mode database: jadwal anime hari ini (cepat & relevan) + fallback A-Z list.
 const DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
