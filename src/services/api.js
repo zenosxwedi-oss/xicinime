@@ -306,6 +306,31 @@ const viaJina = async (path) => {
   return JSON.parse(t.slice(s, e + 1));
 };
 
+
+// Fallback 2: animein API (same as mobile app) via r.jina.ai; maps AxMovie shape -> web shape
+const viaAnimein = async (path, params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch('https://r.jina.ai/https://xyz-api.animein.net/' + path + (qs ? '?' + qs : ''));
+  if (!r.ok) throw new APIError('Server error: ' + r.status, r.status);
+  const t = await r.text();
+  const s = t.indexOf('{');
+  const e = t.lastIndexOf('}');
+  if (s < 0) throw new Error('bad response');
+  const j = JSON.parse(t.slice(s, e + 1));
+  const raw = j?.data?.movie || j?.data?.donghua || [];
+  return raw.map((m) => ({
+    animeId: m.id,
+    title: m.title,
+    posterUrl: m.image_poster || m.image_cover,
+    episodes: m.episode_index || null,
+    score: m.rating || null,
+    status: m.status || null,
+    genre: m.genre || null,
+    releaseDay: m.day || null,
+    source: 'animein',
+  }));
+};
+
 // Provider-specific API endpoints
 const providers = {
   otakudesu: {
@@ -325,7 +350,7 @@ const providers = {
   
   donghua: {
     getHome: async (page = 1) => { try { return await fetchAnime(`/donghua/home/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/home/${page}`); } },
-    getOngoing: async (page = 1) => { try { return await fetchAnime(`/donghua/ongoing/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/ongoing/${page}`); } },
+    getOngoing: async (page = 1) => { try { return await fetchAnime(`/donghua/ongoing/${page}`, 'donghua'); } catch { try { return await viaJina(`/donghua/ongoing/${page}`); } catch { return await viaAnimein('3/2/explore/movie', { page: String(page - 1), sort: 'latest', limit: '60' }); } } },
     getCompleted: async (page = 1) => { try { return await fetchAnime(`/donghua/completed/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/completed/${page}`); } },
     getGenres: async () => { try { return await fetchAnime('/donghua/genres', 'donghua'); } catch { return await viaJina('/donghua/genres'); } },
     getGenreAnime: async (slug, page = 1) => { try { return await fetchAnime(`/donghua/genres/${slug}/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/genres/${slug}/${page}`); } },
@@ -784,24 +809,16 @@ export const animeAPI = {
   // ========== DONGHUA API ==========
   
   // Get Donghua home page
-  getDonghuaHome: async (page = 1) => {
-    return fetchAnime(`/donghua/home/${page}`, 'donghua');
-  },
+  getDonghuaHome: async (page = 1) => { try { return await fetchAnime(`/donghua/home/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/home/${page}`); } },
 
   // Get Donghua ongoing
-  getDonghuaOngoing: async (page = 1) => {
-    return fetchAnime(`/donghua/ongoing/${page}`, 'donghua');
-  },
+  getDonghuaOngoing: async (page = 1) => { try { return await fetchAnime(`/donghua/ongoing/${page}`, 'donghua'); } catch { try { return await viaJina(`/donghua/ongoing/${page}`); } catch { return await viaAnimein('3/2/explore/movie', { page: String(page - 1), sort: 'latest', limit: '60' }); } } },
 
   // Get Donghua completed
-  getDonghuaCompleted: async (page = 1) => {
-    return fetchAnime(`/donghua/completed/${page}`, 'donghua');
-  },
+  getDonghuaCompleted: async (page = 1) => { try { return await fetchAnime(`/donghua/completed/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/completed/${page}`); } },
 
   // Get Donghua latest
-  getDonghuaLatest: async (page = 1) => {
-    return fetchAnime(`/donghua/latest/${page}`, 'donghua');
-  },
+  getDonghuaLatest: async (page = 1) => { try { return await fetchAnime(`/donghua/latest/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/latest/${page}`); } },
 
   // Get Donghua schedule
   getDonghuaSchedule: async () => {
@@ -809,9 +826,7 @@ export const animeAPI = {
   },
 
   // Search Donghua
-  searchDonghua: async (keyword) => {
-    return fetchAnime(`/donghua/search/${encodeURIComponent(keyword)}`, 'donghua');
-  },
+  searchDonghua: async (keyword) => { try { return await fetchAnime(`/donghua/search/${encodeURIComponent(keyword)}`, 'donghua'); } catch { return await viaJina(`/donghua/search/${encodeURIComponent(keyword)}`); } },
 
   // Get Donghua detail
   getDonghuaDetail: async (slug) => {
