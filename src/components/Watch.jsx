@@ -2,9 +2,17 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { animeAPI } from '../services/api';
 import { addToWatchHistory, updateWatchProgress, getWatchProgress, patchWatchHistoryMeta } from '../utils/watchHistory';
-import { createPlayer } from '@videojs/react';
-import { VideoSkin, Video, videoFeatures } from '@videojs/react/video';
-import '@videojs/react/video/skin.css';
+// videojs is heavy (~360KB) — load it lazily ONLY when a player is actually needed.
+let __vj = null;
+const loadVideoJs = async () => {
+  if (!__vj) {
+    await import('@videojs/react/video/skin.css');
+    const core = await import('@videojs/react');
+    const video = await import('@videojs/react/video');
+    __vj = { createPlayer: core.createPlayer, VideoSkin: video.VideoSkin, Video: video.Video, videoFeatures: video.videoFeatures };
+  }
+  return __vj;
+};
 import WatchLoading from './WatchLoading';
 import AdBanner from './AdBanner';
 import EmbedPlayer from './EmbedPlayer';
@@ -419,11 +427,11 @@ const Watch = () => {
       <div className="video-player-wrapper" style={{ position: 'relative' }}>
         {switching && <WatchLoading message="Mengganti server..." serverName={switchLabel} />}
         {videoUrl ? (
-          useVideoJs ? (
+          useVideoJs && Player && vjLib ? (
             /* Try Video.js first */
             <Player.Provider key={videoUrl}>
-              <VideoSkin>
-                <Video
+              <vjLib.VideoSkin>
+                <vjLib.Video
                   ref={(el) => {
                     videoElRef.current = el;
                     if (el) {
@@ -438,7 +446,7 @@ const Watch = () => {
                   playsInline
                   autoPlay
                 />
-              </VideoSkin>
+              </vjLib.VideoSkin>
             </Player.Provider>
           ) : iframeSrc ? (
             /* Fallback: enhanced embed player */
