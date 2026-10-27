@@ -61,7 +61,16 @@ export const normalizeAnime = (anime, index = 0) => {
 
 const AnimeCard = ({ anime, index = 0, innerRef, statusOverride, providerHint }) => {
   const normalized = normalizeAnime(anime, index);
-  const { animeId, title, posterUrl, episodes, score, releaseDay, isCompleted, rawStatus, providerLabel } = normalized;
+  const { animeId, title, posterUrl: _posterUrl, episodes, score, releaseDay, isCompleted, rawStatus, providerLabel } = normalized;
+  // HD poster via AniList (cached)
+  const [hdSrc, setHdSrc] = useState(getCachedHdPoster(title) || null);
+  useEffect(() => {
+    let dead = false;
+    setHdSrc(getCachedHdPoster(title) || null);
+    fetchHdPoster(title).then((u) => { if (!dead && u) setHdSrc(u); });
+    return () => { dead = true; };
+  }, [title]);
+  const posterUrl = hdSrc || _posterUrl;
 
   const useOverride = statusOverride && (statusOverride.toLowerCase() === 'ongoing' || statusOverride.toLowerCase() === 'completed');
   const isCompletedBadge = useOverride ? statusOverride.toLowerCase() === 'completed' : isCompleted;

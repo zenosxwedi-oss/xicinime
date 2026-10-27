@@ -294,6 +294,18 @@ const fetchAnime = async (endpoint, _provider = 'default', { priority = false, s
   return enqueue(doFetch);
 };
 
+
+// Fallback: fetch via r.jina.ai reader when direct fetch is blocked (CF etc.)
+const viaJina = async (path) => {
+  const r = await fetch('https://r.jina.ai/' + API_BASE_URL + path);
+  if (!r.ok) throw new APIError('Server error: ' + r.status, r.status);
+  const t = await r.text();
+  const s = t.indexOf('{');
+  const e = t.lastIndexOf('}');
+  if (s < 0) throw new Error('bad response');
+  return JSON.parse(t.slice(s, e + 1));
+};
+
 // Provider-specific API endpoints
 const providers = {
   otakudesu: {
@@ -312,13 +324,13 @@ const providers = {
   },
   
   donghua: {
-    getHome: (page = 1) => fetchAnime(`/donghua/home/${page}`, 'donghua'),
-    getOngoing: (page = 1) => fetchAnime(`/donghua/ongoing/${page}`, 'donghua'),
-    getCompleted: (page = 1) => fetchAnime(`/donghua/completed/${page}`, 'donghua'),
-    getGenres: () => fetchAnime('/donghua/genres', 'donghua'),
-    getGenreAnime: (slug, page = 1) => fetchAnime(`/donghua/genres/${slug}/${page}`, 'donghua'),
-    getAZList: (letter, page = 1) => fetchAnime(`/donghua/az-list/${letter}/${page}`, 'donghua'),
-    search: (keyword) => fetchAnime(`/donghua/search/${encodeURIComponent(keyword)}`, 'donghua'),
+    getHome: async (page = 1) => { try { return await fetchAnime(`/donghua/home/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/home/${page}`); } },
+    getOngoing: async (page = 1) => { try { return await fetchAnime(`/donghua/ongoing/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/ongoing/${page}`); } },
+    getCompleted: async (page = 1) => { try { return await fetchAnime(`/donghua/completed/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/completed/${page}`); } },
+    getGenres: async () => { try { return await fetchAnime('/donghua/genres', 'donghua'); } catch { return await viaJina('/donghua/genres'); } },
+    getGenreAnime: async (slug, page = 1) => { try { return await fetchAnime(`/donghua/genres/${slug}/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/genres/${slug}/${page}`); } },
+    getAZList: async (letter, page = 1) => { try { return await fetchAnime(`/donghua/az-list/${letter}/${page}`, 'donghua'); } catch { return await viaJina(`/donghua/az-list/${letter}/${page}`); } },
+    search: async (keyword) => { try { return await fetchAnime(`/donghua/search/${encodeURIComponent(keyword)}`, 'donghua'); } catch { return await viaJina(`/donghua/search/${encodeURIComponent(keyword)}`); } },
   },
   
   samehadaku: {
