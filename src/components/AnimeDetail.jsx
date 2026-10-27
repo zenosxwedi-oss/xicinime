@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { prefetchEpisode } from '../utils/prefetch';
 import { useParams, Link } from 'react-router-dom';
 import { animeAPI, APIError } from '../services/api';
 
@@ -191,12 +192,12 @@ const AnimeDetail = () => {
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {firstEpisode?.episodeId && (
-              <Link to={`/watch/${firstEpisode.episodeId}`} className="btn btn-secondary">
+              <Link to={`/watch/${firstEpisode.episodeId}`} className="btn btn-secondary" onTouchStart={() => prefetchEpisode(firstEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(firstEpisode.episodeId)}>
                 ▶ Episode 1
               </Link>
             )}
             {latestEpisode?.episodeId && latestEpisode.episodeId !== firstEpisode?.episodeId && (
-              <Link to={`/watch/${latestEpisode.episodeId}`} className="btn btn-primary">
+              <Link to={`/watch/${latestEpisode.episodeId}`} onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} className="btn btn-primary" onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(latestEpisode.episodeId)}>
                 ▶ Episode Terbaru
               </Link>
             )}
@@ -275,7 +276,7 @@ const AnimeDetail = () => {
             {currentBatchEpisodes.map((episode, idx) => (
               <Link
                 key={episode.episodeId ?? idx}
-                to={`/watch/${episode.episodeId}`}
+                to={`/watch/${episode.episodeId}`} onTouchStart={() => prefetchEpisode(episode.episodeId)} onMouseEnter={() => prefetchEpisode(episode.episodeId)}
                 className="episode-item"
                 state={{ provider: providerUsed }}
               >
