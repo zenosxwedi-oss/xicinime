@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 // AniList HD poster resolver: title -> coverImage.extraLarge (cached in localStorage)
 const HD_CACHE_KEY = 'nusanimeHdPosters:v1';
 
@@ -48,9 +49,8 @@ export const fetchHdPoster = async (title) => {
 };
 
 // React hook: returns HD poster (or null while resolving)
-import { useEffect, useState as _useState } from 'react';
 export const useHdPoster = (title, fallbackSrc) => {
-  const [src, setSrc] = _useState(getCachedHdPoster(title) || fallbackSrc);
+  const [src, setSrc] = useState(getCachedHdPoster(title) || fallbackSrc);
   useEffect(() => {
     let dead = false;
     setSrc(getCachedHdPoster(title) || fallbackSrc);
