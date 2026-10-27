@@ -244,7 +244,7 @@ const fetchAnime = async (endpoint, _provider = 'default', { priority = false, s
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
-        signal,
+        signal: signal || AbortSignal.timeout(12000),
       });
 
       const contentType = response.headers.get('content-type') || '';
