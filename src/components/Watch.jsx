@@ -31,7 +31,7 @@ const Watch = () => {
       if (dead) return;
       setVjLib({ VideoSkin, Video });
       setPlayer(cp({ features: vf }));
-    }).catch(() => {});
+    }).catch((e) => { if (typeof window !== 'undefined') window.__vjLoadErr = String(e); });
     return () => { dead = true; };
   }, []);
   const { episodeId } = useParams();
@@ -441,7 +441,7 @@ const Watch = () => {
       <div className="video-player-wrapper" style={{ position: 'relative' }}>
         {switching && <WatchLoading message="Mengganti server..." serverName={switchLabel} />}
         {videoUrl ? (
-          useVideoJs && Player && vjLib ? (
+          useVideoJs && Player && vjLib && vjLib.VideoSkin && vjLib.Video ? (
             /* Try Video.js first */
             <Player.Provider key={videoUrl}>
               <vjLib.VideoSkin>
