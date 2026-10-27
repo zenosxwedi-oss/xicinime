@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchHdPoster, getCachedHdPoster } from '../utils/hdPoster';
 import { Link } from 'react-router-dom';
 
 // Poster rescue: when a poster fails (blocked host), look it up on samehadaku search API
