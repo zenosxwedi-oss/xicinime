@@ -22,16 +22,27 @@ const DbSchedule = () => {
     let dead = false;
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 10000);
+    const parseDays = (j) => {
+      const list = j?.data?.days || [];
+      if (!list.length) throw new Error('empty');
+      if (!dead) { setDays(list); setLoading(false); }
+    };
     fetch(API, { signal: ctl.signal, headers: { Accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => {
+      .then(parseDays)
+      .catch(() => {
         if (dead) return;
-        const list = j?.data?.days || [];
-        if (!list.length) throw new Error('empty');
-        setDays(list);
-        setLoading(false);
+        // fallback via r.jina.ai reader (returns markdown-wrapped JSON)
+        fetch('https://r.jina.ai/' + API)
+          .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+          .then((t) => {
+            const s = t.indexOf('{');
+            const e2 = t.lastIndexOf('}');
+            if (s < 0) throw new Error('no json');
+            parseDays(JSON.parse(t.slice(s, e2 + 1)));
+          })
+          .catch(() => { if (!dead) { setError('Gagal memuat jadwal'); setLoading(false); } });
       })
-      .catch(() => { if (!dead) { setError('Gagal memuat jadwal'); setLoading(false); } })
       .finally(() => clearTimeout(to));
     return () => { dead = true; };
   }, []);
