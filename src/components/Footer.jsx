@@ -2,6 +2,23 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 
+const VisitorCounter = () => {
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+      <span style={{ fontSize: 12, color: 'var(--color-text-muted, #888)' }}>👀 Pengunjung:</span>
+      <img
+        src="https://count.getloli.com/get/@nusanime-web?theme=moebooru"
+        alt="jumlah pengunjung"
+        style={{ height: 28 }}
+        loading="lazy"
+        onError={() => setOk(false)}
+      />
+    </div>
+  );
+};
+
 const Footer = () => {
   const [showReport, setShowReport] = useState(false);
   const [reportText, setReportText] = useState('');
@@ -32,6 +49,7 @@ const Footer = () => {
             <a href="https://trakteer.id/nusanime/tip" target="_blank" rel="noopener noreferrer" className="footer-donate-btn">
               ☕ Dukung Kami
             </a>
+            <VisitorCounter />
           </div>
 
           {/* Links */}
