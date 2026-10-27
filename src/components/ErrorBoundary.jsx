@@ -16,6 +16,17 @@ class ErrorBoundary extends Component {
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
       console.error('[ErrorBoundary] Render error:', error, errorInfo);
     }
+    // Auto-recover from stale deploy: old JS chunk missing after a new release.
+    const msg = String((error && (error.message || error)) || '');
+    if (/Loading chunk|dynamically imported module|Importing a module script|Failed to fetch dynamically/i.test(msg)) {
+      try {
+        if (!sessionStorage.getItem('__chunkReloaded')) {
+          sessionStorage.setItem('__chunkReloaded', '1');
+          if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.update()));
+          window.location.reload();
+        }
+      } catch {}
+    }
   }
 
   handleReset = () => {
