@@ -21,9 +21,19 @@ const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.me
 const devWarn = (...args) => { if (isDev) console.warn(...args); };
 const devLog = (...args) => { if (isDev) console.log(...args); };
 
-const Player = createPlayer({ features: videoFeatures });
 
 const Watch = () => {
+  const [Player, setPlayer] = useState(null);
+  const [vjLib, setVjLib] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    loadVideoJs().then(({ createPlayer: cp, videoFeatures: vf, VideoSkin, Video }) => {
+      if (dead) return;
+      setVjLib({ VideoSkin, Video });
+      setPlayer(cp({ features: vf }));
+    }).catch(() => {});
+    return () => { dead = true; };
+  }, []);
   const { episodeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
