@@ -192,12 +192,12 @@ const AnimeDetail = () => {
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {firstEpisode?.episodeId && (
-              <Link to={`/watch/${firstEpisode.episodeId}`} className="btn btn-secondary" onTouchStart={() => prefetchEpisode(firstEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(firstEpisode.episodeId)}>
+              <Link to={`/watch/${firstEpisode.episodeId}`} state={{ provider: "samehadaku" }} className="btn btn-secondary" onTouchStart={() => prefetchEpisode(firstEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(firstEpisode.episodeId)}>
                 ▶ Episode 1
               </Link>
             )}
             {latestEpisode?.episodeId && latestEpisode.episodeId !== firstEpisode?.episodeId && (
-              <Link to={`/watch/${latestEpisode.episodeId}`} onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} className="btn btn-primary" onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(latestEpisode.episodeId)}>
+              <Link to={`/watch/${latestEpisode.episodeId}`} state={{ provider: "samehadaku" }} onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} className="btn btn-primary" onTouchStart={() => prefetchEpisode(latestEpisode.episodeId)} onMouseEnter={() => prefetchEpisode(latestEpisode.episodeId)}>
                 ▶ Episode Terbaru
               </Link>
             )}
@@ -233,7 +233,7 @@ const AnimeDetail = () => {
             <span>Daftar Episode ({sortedEpisodeList.length})</span>
             {latestEpisode?.episodeId && (
               <Link
-                to={`/watch/${latestEpisode.episodeId}`}
+                to={`/watch/${latestEpisode.episodeId}`} state={{ provider: "samehadaku" }}
                 state={{ provider: providerUsed }}
                 style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none', background: 'rgba(var(--color-primary-rgb, 147,51,234),0.12)', padding: '4px 10px', borderRadius: '20px', border: '1px solid var(--color-primary)' }}
               >
@@ -276,7 +276,7 @@ const AnimeDetail = () => {
             {currentBatchEpisodes.map((episode, idx) => (
               <Link
                 key={episode.episodeId ?? idx}
-                to={`/watch/${episode.episodeId}`} onTouchStart={() => prefetchEpisode(episode.episodeId)} onMouseEnter={() => prefetchEpisode(episode.episodeId)}
+                to={`/watch/${episode.episodeId}`} state={{ provider: "samehadaku" }} onTouchStart={() => prefetchEpisode(episode.episodeId)} onMouseEnter={() => prefetchEpisode(episode.episodeId)}
                 className="episode-item"
                 state={{ provider: providerUsed }}
               >

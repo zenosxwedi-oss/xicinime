@@ -102,19 +102,21 @@ const Watch = () => {
         }
 
         let data = null, usedProvider = null, lastError = null;
-        const withTimeout = (pr, ms = 8000) => Promise.race([
+        const withTimeout = (pr, ms = 9000) => Promise.race([
           pr,
           new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
         ]);
-        for (const p of providers) {
-          if (cancelled) return;
-          try {
-            const result = await withTimeout(p.fn());
-            const hasStream = (result?.streaming?.servers?.length > 0) || result?.data?.defaultStreamingUrl || (result?.data?.servers?.length > 0) || (result?.data?.server?.qualities?.some(q => q.serverList?.length > 0));
-            if (hasStream) {
-              data = result; usedProvider = p.name; break;
-            }
-          } catch (e) { lastError = e; }
+        // PARALLEL: race all providers at once, first one with stream data wins (sequential fallback took 10-20s)
+        const results = await Promise.allSettled(providers.map(p => withTimeout(p.fn()).then(r => ({ r, name: p.name }))));
+        if (cancelled) return;
+        for (const res of results) {
+          if (res.status === 'fulfilled') {
+            const { r, name } = res.value;
+            const hasStream = (r?.streaming?.servers?.length > 0) || r?.data?.defaultStreamingUrl || (r?.data?.servers?.length > 0) || (r?.data?.server?.qualities?.some(q => q.serverList?.length > 0));
+            if (hasStream) { data = r; usedProvider = name; break; }
+          } else {
+            lastError = res.reason;
+          }
         }
         if (cancelled) return;
         if (!data) throw new Error(lastError?.message || 'Episode tidak ditemukan.');

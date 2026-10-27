@@ -213,11 +213,11 @@ const DonghuaDetail = () => {
             {/* CTA buttons */}
             {episodes.length > 0 && (
               <div className="dd-cta" role="group" aria-label="Mulai menonton">
-                <Link to={`/watch/${firstSlug}`} className="btn btn-primary btn-large">
+                <Link to={`/watch/${firstSlug}`} state={{ provider: "donghua" }} className="btn btn-primary btn-large">
                   <span aria-hidden="true">▶</span> Episode 1
                 </Link>
                 {episodes.length > 1 && (
-                  <Link to={`/watch/${latestSlug}`} className="btn btn-secondary btn-large">
+                  <Link to={`/watch/${latestSlug}`} state={{ provider: "donghua" }} className="btn btn-secondary btn-large">
                     Episode Terbaru
                   </Link>
                 )}
@@ -271,7 +271,7 @@ const DonghuaDetail = () => {
                   const epSlug  = ep.slug ?? ep.episodeId ?? '';
                   return (
                     <li key={epSlug || idx} className="dd-ep-item">
-                      <Link to={`/watch/${epSlug}`} className="dd-ep-btn" aria-label={`Tonton ${epTitle}`}>
+                      <Link to={`/watch/${epSlug}`} state={{ provider: "donghua" }} className="dd-ep-btn" aria-label={`Tonton ${epTitle}`}>
                         <span className="dd-ep-btn__title">{epTitle}</span>
                         {ep.date && <span className="dd-ep-btn__date">{ep.date}</span>}
                         <span className="dd-ep-btn__icon" aria-hidden="true">▶</span>
