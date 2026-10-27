@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useParams } from 'react-router-dom'
+import { Routes, Route, useParams, Navigate } from 'react-router-dom'
 import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
 const DbDetail = lazy(() => import('./components/DbDetail'))
@@ -84,6 +84,7 @@ function App() {
                 <Route path="/donghua-genres" element={<DonghuaGenres />} />
                 <Route path="/donghua-genre/:slug" element={<DonghuaGenreFilter />} />
                 <Route path="/donghua-az" element={<DonghuaAZList />} />
+                <Route path="/donghua" element={<Navigate to="/donghua-ongoing" replace />} />
                 <Route path="/donghua/:slug" element={<DonghuaDetail />} />
                 <Route path="/genres" element={<Genres />} />
                 <Route path="/az-list" element={<AZList />} />

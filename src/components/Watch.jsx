@@ -102,10 +102,14 @@ const Watch = () => {
         }
 
         let data = null, usedProvider = null, lastError = null;
+        const withTimeout = (pr, ms = 8000) => Promise.race([
+          pr,
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+        ]);
         for (const p of providers) {
           if (cancelled) return;
           try {
-            const result = await p.fn();
+            const result = await withTimeout(p.fn());
             const hasStream = (result?.streaming?.servers?.length > 0) || result?.data?.defaultStreamingUrl || (result?.data?.servers?.length > 0) || (result?.data?.server?.qualities?.some(q => q.serverList?.length > 0));
             if (hasStream) {
               data = result; usedProvider = p.name; break;
