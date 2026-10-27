@@ -441,27 +441,26 @@ const Watch = () => {
       <div className="video-player-wrapper" style={{ position: 'relative' }}>
         {switching && <WatchLoading message="Mengganti server..." serverName={switchLabel} />}
         {videoUrl ? (
-          useVideoJs && Player && vjLib && vjLib.Video ? (
-            /* Video.js player */
-            <Player key={videoUrl}>
-              <vjLib.Container className="media-container">
-                <vjLib.Video
-                  ref={(el) => {
-                    videoElRef.current = el;
-                    if (el) {
-                      el.onerror = () => {
-                        devLog('[Watch] Video.js failed, falling back to iframe');
-                        setVideoFailed(true);
-                        setSwitching(false);
-                      };
-                    }
-                  }}
-                  src={videoUrl}
-                  playsInline
-                  autoPlay
-                />
-              </vjLib.Container>
-            </Player>
+          useVideoJs ? (
+            /* Native HTML5 player — simple & reliable */
+            <video
+              key={videoUrl}
+              ref={(el) => {
+                videoElRef.current = el;
+                if (el) {
+                  el.onerror = () => {
+                    devLog('[Watch] Native video failed, falling back to iframe');
+                    setVideoFailed(true);
+                    setSwitching(false);
+                  };
+                }
+              }}
+              src={videoUrl}
+              controls
+              playsInline
+              autoPlay
+              style={{ width: '100%', height: '100%', background: '#000', borderRadius: '8px' }}
+            />
           ) : iframeSrc ? (
             /* Fallback: enhanced embed player */
             <EmbedPlayer src={iframeSrc} title={episodeData.title} onLoad={() => setSwitching(false)} />
