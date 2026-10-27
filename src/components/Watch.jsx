@@ -9,7 +9,7 @@ const loadVideoJs = async () => {
     await import('@videojs/react/video/skin.css');
     const core = await import('@videojs/react');
     const video = await import('@videojs/react/video');
-    __vj = { createPlayer: core.createPlayer, VideoSkin: video.VideoSkin, Video: video.Video, videoFeatures: video.videoFeatures };
+    __vj = { createPlayer: core.createPlayer, Container: core.Container, Video: video.Video, videoFeatures: video.videoFeatures };
   }
   return __vj;
 };
@@ -27,9 +27,9 @@ const Watch = () => {
   const [vjLib, setVjLib] = useState(null);
   useEffect(() => {
     let dead = false;
-    loadVideoJs().then(({ createPlayer: cp, videoFeatures: vf, VideoSkin, Video }) => {
+    loadVideoJs().then(({ createPlayer: cp, videoFeatures: vf, Container, Video }) => {
       if (dead) return;
-      setVjLib({ VideoSkin, Video });
+      setVjLib({ Video, Container });
       setPlayer(cp({ features: vf }));
     }).catch((e) => { if (typeof window !== 'undefined') window.__vjLoadErr = String(e); });
     return () => { dead = true; };
@@ -441,10 +441,10 @@ const Watch = () => {
       <div className="video-player-wrapper" style={{ position: 'relative' }}>
         {switching && <WatchLoading message="Mengganti server..." serverName={switchLabel} />}
         {videoUrl ? (
-          useVideoJs && Player && vjLib && vjLib.VideoSkin && vjLib.Video ? (
-            /* Try Video.js first */
-            <Player.Provider key={videoUrl}>
-              <vjLib.VideoSkin>
+          useVideoJs && Player && vjLib && vjLib.Video ? (
+            /* Video.js player */
+            <Player key={videoUrl}>
+              <vjLib.Container className="media-container">
                 <vjLib.Video
                   ref={(el) => {
                     videoElRef.current = el;
@@ -460,8 +460,8 @@ const Watch = () => {
                   playsInline
                   autoPlay
                 />
-              </vjLib.VideoSkin>
-            </Player.Provider>
+              </vjLib.Container>
+            </Player>
           ) : iframeSrc ? (
             /* Fallback: enhanced embed player */
             <EmbedPlayer src={iframeSrc} title={episodeData.title} onLoad={() => setSwitching(false)} />
