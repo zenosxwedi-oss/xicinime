@@ -29,9 +29,13 @@ const AnimeDetail = () => {
         : PROVIDER_ORDER;
 
       const fetchByProvider = async (prov, id) => {
-        if (prov === 'samehadaku') return animeAPI.getAnimeDetailSamehadaku(id);
-        if (prov === 'stream') return animeAPI.getAnimeDetailStream(id);
-        return animeAPI.getAnimeDetail(id);
+        // hard 10s timeout so a slow provider never hangs the page
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000));
+        let res;
+        if (prov === 'samehadaku') res = await Promise.race([animeAPI.getAnimeDetailSamehadaku(id), timeout]);
+        else if (prov === 'stream') res = await Promise.race([animeAPI.getAnimeDetailStream(id), timeout]);
+        else res = await Promise.race([animeAPI.getAnimeDetail(id), timeout]);
+        return res;
       };
 
       let found = false;
@@ -47,9 +51,8 @@ const AnimeDetail = () => {
               break;
             }
           } catch (err) {
-            if (err instanceof APIError && err.statusCode === 404) continue;
-            setError(err?.message ?? String(err));
-            break;
+            // 404 = try next provider; network/timeout errors also try next provider
+            continue;
           }
         }
         if (!found && !error) { setAnime(null); setError(null); }
