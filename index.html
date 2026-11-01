@@ -121,9 +121,25 @@
       // Suppress PWA install prompt — download the native app instead
       window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); });
     </script>
-      <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3946939950557724"
-     crossorigin="anonymous"></script>
+      <!-- Ads: AdSense on main site only; Monetag on streaming site -->
+    <script>
+      (function () {
+        var h = location.hostname;
+        if (h === 'nusanime.web.id' || h === 'www.nusanime.web.id') {
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3946939950557724';
+          s.crossOrigin = 'anonymous';
+          document.head.appendChild(s);
+        } else if (h === 'anime.nusanime.web.id') {
+          var m = document.createElement('script');
+          m.async = true;
+          m.dataset.cfasync = 'false';
+          m.src = 'https://5gvci.com/act/files/tag.min.js?z=12126556';
+          document.head.appendChild(m);
+        }
+      })();
+    </script>
     <meta name="google-site-verification" content="pgcggcoYZrUjasgwBvE9SueT3q888rVys_4E19Nsp8I" />
 </head>
   <body>
@@ -150,7 +166,8 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {});
+          var swFile = (location.hostname === 'anime.nusanime.web.id') ? '/monetag-sw.js' : '/sw.js';
+          navigator.serviceWorker.register(swFile).catch(() => {});
         });
       }
     </script>
