@@ -5,7 +5,7 @@ const links = [
   ['/', 'Beranda'],
   ['/donghua-ongoing', 'Donghua'],
   ['/movie', 'Movie'],
-  ['/genres', 'Genres'],
+  ['/genre', 'Genre'],
   ['/schedule', 'Jadwal'],
 ];
 

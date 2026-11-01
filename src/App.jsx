@@ -4,6 +4,7 @@ import Home from './components/Home'
 const DbHome = lazy(() => import('./components/DbHome'))
 const DbSchedule = lazy(() => import('./components/DbSchedule'))
 const DbDetail = lazy(() => import('./components/DbDetail'))
+const DbGenres = lazy(() => import('./components/DbGenres'))
 import DbNavbar from './components/DbNavbar'
 import LegalPage from './components/LegalPage'
 import Header from './components/Header'
@@ -89,6 +90,8 @@ function App() {
                 <Route path="/donghua" element={<Navigate to="/donghua-ongoing" replace />} />
                 <Route path="/donghua/:slug" element={<DonghuaDetail />} />
                 <Route path="/genres" element={<Genres />} />
+                <Route path="/genre" element={SITE_MODE === 'db' ? <DbGenres /> : <Genres />} />
+                <Route path="/genre/:genreId" element={SITE_MODE === 'db' ? <DbGenres /> : <Genres />} />
                 <Route path="/az-list" element={<AZList />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/history" element={<WatchHistory />} />

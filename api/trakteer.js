@@ -3,6 +3,9 @@ const BASE = 'https://api.trakteer.id/v1/public';
 
 // Allowed origins (exact match). Add staging/preview here if needed.
 const ALLOWED_ORIGINS = new Set([
+  'https://nusanime.web.id',
+  'https://www.nusanime.web.id',
+  'https://anime.nusanime.web.id',
   'https://www.xicinime.my.id',
   'https://xicinime.my.id',
 ]);

@@ -5,9 +5,9 @@ export const prefetchEpisode = (episodeId) => {
     if (sessionStorage.getItem(`epq:${episodeId}`)) return;
     sessionStorage.setItem(`epq:${episodeId}`, '1');
     // Warm the real API (same base the app uses) so the response is cached by the browser
-    fetch(`https://www.sankavollerei.web.id/anime/samehadaku/episode/${episodeId}`, {
-      mode: 'cors',
-      headers: { Accept: 'application/json' },
-    }).catch(() => {});
+    const H = { mode: 'cors', headers: { Accept: 'application/json' } };
+    fetch(`https://www.sankavollerei.web.id/anime/samehadaku/episode/${episodeId}`, H).catch(() => {});
+    // also warm the donghua endpoint so donghua episodes open fast too
+    fetch(`https://www.sankavollerei.web.id/anime/donghua/episode/${episodeId}`, H).catch(() => {});
   } catch {}
 };

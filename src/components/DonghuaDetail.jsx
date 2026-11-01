@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { animeAPI } from '../services/api';
+import { prefetchEpisode } from '../utils/prefetch';
 
 // Dev-only logger
 const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
@@ -213,11 +214,11 @@ const DonghuaDetail = () => {
             {/* CTA buttons */}
             {episodes.length > 0 && (
               <div className="dd-cta" role="group" aria-label="Mulai menonton">
-                <Link to={`/watch/${firstSlug}`} state={{ provider: "donghua" }} className="btn btn-primary btn-large">
+                <Link to={`/watch/${firstSlug}`} state={{ provider: "donghua" }} className="btn btn-primary btn-large" onTouchStart={() => prefetchEpisode(firstSlug)} onMouseEnter={() => prefetchEpisode(firstSlug)}>
                   <span aria-hidden="true">▶</span> Episode 1
                 </Link>
                 {episodes.length > 1 && (
-                  <Link to={`/watch/${latestSlug}`} state={{ provider: "donghua" }} className="btn btn-secondary btn-large">
+                  <Link to={`/watch/${latestSlug}`} state={{ provider: "donghua" }} className="btn btn-secondary btn-large" onTouchStart={() => prefetchEpisode(latestSlug)} onMouseEnter={() => prefetchEpisode(latestSlug)}>
                     Episode Terbaru
                   </Link>
                 )}
@@ -271,7 +272,7 @@ const DonghuaDetail = () => {
                   const epSlug  = ep.slug ?? ep.episodeId ?? '';
                   return (
                     <li key={epSlug || idx} className="dd-ep-item">
-                      <Link to={`/watch/${epSlug}`} state={{ provider: "donghua" }} className="dd-ep-btn" aria-label={`Tonton ${epTitle}`}>
+                      <Link to={`/watch/${epSlug}`} state={{ provider: "donghua" }} className="dd-ep-btn" onTouchStart={() => prefetchEpisode(epSlug)} onMouseEnter={() => prefetchEpisode(epSlug)} aria-label={`Tonton ${epTitle}`}>
                         <span className="dd-ep-btn__title">{epTitle}</span>
                         {ep.date && <span className="dd-ep-btn__date">{ep.date}</span>}
                         <span className="dd-ep-btn__icon" aria-hidden="true">▶</span>

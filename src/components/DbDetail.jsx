@@ -66,6 +66,12 @@ export default function DbDetail() {
                   : d.synopsis,
                 images: { jpg: { large_image_url: d.poster, image_url: d.poster } },
               });
+              const elist = (d.episodeList || []).map((e) => ({
+                num: parseInt(e.title, 10) || e.title,
+                title: null,
+                episodeId: e.episodeId || null,
+              })).sort((x, y) => x.num - y.num);
+              if (!dead) setEps(elist);
             }
           } catch {}
           if (!got) await new Promise((r) => setTimeout(r, 900));
@@ -90,6 +96,9 @@ export default function DbDetail() {
   );
 
   const total = a.episodes || eps.length || 0;
+  const firstEp = eps.find((e) => e.episodeId);
+  const firstWatchUrl = firstEp ? `${STREAM}/watch/${firstEp.episodeId}` : null;
+  const slugId = firstEp ? firstEp.episodeId.replace(/-episode-.*$/, '') : null;
   const banner = a.images?.jpg?.large_image_url;
 
   return (
@@ -120,7 +129,7 @@ export default function DbDetail() {
               {a.season && <span style={pill}>{a.season}</span>}
               {a.duration && <span style={pill}>{a.duration}</span>}
             </div>
-            <a href={`${STREAM}/anime/mal-${malId}`} className="btn btn-primary"
+            <a href={firstWatchUrl || `${STREAM}/anime/${slugId || 'mal-' + malId}`} className="btn btn-primary"
               style={{ display: 'inline-flex', marginTop: 14, padding: '13px 30px', fontWeight: 800, fontSize: 15 }}>
               ▶ Tonton Sekarang
             </a>
@@ -161,10 +170,10 @@ export default function DbDetail() {
         <h2 style={h2}>🎬 Daftar Episode{total ? ` (${total})` : ''}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, marginTop: 12 }}>
           {(eps.length > 0
-            ? eps.map((e) => ({ num: e.mal_id, title: e.title }))
+            ? eps.map((e) => ({ num: e.mal_id ?? e.num, title: e.title, episodeId: e.episodeId }))
             : Array.from({ length: total || 0 }, (_, i) => ({ num: i + 1, title: null }))
           ).map((e) => (
-            <a key={e.num} href={`${STREAM}/anime/mal-${malId}`}
+            <a key={e.num} href={e.episodeId ? `${STREAM}/watch/${e.episodeId}` : `${STREAM}/anime/${slugId || 'mal-' + malId}`}
               style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
                 padding: '11px 13px', borderRadius: 10, textDecoration: 'none',
