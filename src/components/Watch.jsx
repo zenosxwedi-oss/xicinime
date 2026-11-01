@@ -15,6 +15,7 @@ const loadVideoJs = async () => {
 };
 import WatchLoading from './WatchLoading';
 import AdBanner from './AdBanner';
+import MonetagBanner from './MonetagBanner';
 import EmbedPlayer from './EmbedPlayer';
 
 const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
@@ -502,8 +503,8 @@ const Watch = () => {
         )}
       </div>
 
-      {/* AdSense Banner */}
-      <AdBanner format="auto" style={{ margin: '16px 0' }} />
+      {/* Monetag banner */}
+      <MonetagBanner />
 
       {/* Anime Info */}
       {animeData && (

@@ -6,6 +6,7 @@ import AnimeCard from './AnimeCard';
 import AnimeCarousel from './AnimeCarousel';
 import Footer from './Footer';
 import AdBanner from './AdBanner';
+import MonetagBanner from './MonetagBanner';
 import { getWatchHistory, formatTime } from '../utils/watchHistory';
 import { mergeAnimeLists } from '../utils/animeUtils';
 
@@ -211,7 +212,7 @@ const Home = () => {
       )}
 
       {/* AdSense Banner */}
-      <AdBanner format="auto" style={{ margin: '8px 0' }} />
+      <MonetagBanner style={{ margin: '8px 0' }} />
 
       {/* Anime sections */}
       {ongoing.length > 0 && (
@@ -226,7 +227,7 @@ const Home = () => {
           <div className="home-rail-scroll">{buildRailItems(donghuaOngoing, 'Ongoing', true)}</div>
         </section>
       )}
-      {ongoing.length > 0 && completed.length > 0 && <AdBanner format="auto" style={{ margin: '8px 0' }} />}
+      {ongoing.length > 0 && completed.length > 0 && <MonetagBanner style={{ margin: '8px 0' }} />}
 
       {completed.length > 0 && (
         <section className="section home-rail">
