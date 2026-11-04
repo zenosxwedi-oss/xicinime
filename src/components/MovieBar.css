@@ -1,0 +1,28 @@
+.moviebar-search { display: flex; gap: 8px; max-width: 480px; margin: 14px auto; }
+.moviebar-search input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: inherit; font-size: 15px; }
+.moviebar-search button { padding: 10px 18px; border-radius: 10px; border: 0; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: #fff; font-weight: 600; cursor: pointer; }
+.moviebar-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 10px 0 0; }
+.moviebar-genres { max-width: 720px; margin-left: auto; margin-right: auto; }
+.moviebar-chips .chip { padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05); color: inherit; font-size: 13px; cursor: pointer; }
+.moviebar-chips .chip.active { background: linear-gradient(135deg,#7c3aed,#4f46e5); color: #fff; border-color: transparent; }
+.moviebar-more { display: flex; justify-content: center; margin-top: 18px; }
+.moviebar-rating { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.75); color: #fbbf24; font-size: 12px; padding: 2px 7px; border-radius: 8px; font-weight: 700; }
+.moviebar-hero { position: relative; min-height: 320px; background-size: cover; background-position: center; border-radius: 18px; overflow: hidden; margin-top: 16px; }
+.moviebar-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.95), rgba(0,0,0,.55)); }
+.moviebar-hero-inner { position: relative; display: flex; gap: 20px; padding: 24px; align-items: flex-end; min-height: 320px; }
+.moviebar-poster { width: 150px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.6); flex-shrink: 0; }
+.moviebar-meta h1 { margin: 0 0 6px; font-size: 26px; }
+.moviebar-sub { color: #cbd5e1; margin: 0 0 10px; }
+.moviebar-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.moviebar-tags span { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.12); }
+.moviebar-playbtn { font-size: 16px; padding: 12px 26px; border-radius: 12px; border: 0; background: linear-gradient(135deg,#7c3aed,#4f46e5); color: #fff; font-weight: 700; cursor: pointer; }
+.moviebar-playbtn:disabled { opacity: .6; }
+.moviebar-err { color: #f87171; margin-top: 10px; }
+.moviebar-player-box { width: 100%; max-width: 960px; margin: 0 auto; }
+.moviebar-player-box video { width: 100%; border-radius: 12px; }
+.moviebar-overview { line-height: 1.7; }
+.moviebar-back { display: inline-block; margin-top: 12px; color: #a78bfa; }
+@media (max-width: 640px) {
+  .moviebar-hero-inner { flex-direction: column; align-items: center; text-align: center; }
+  .moviebar-tags, .moviebar-chips { justify-content: center; }
+}

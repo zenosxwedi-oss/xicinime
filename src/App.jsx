@@ -14,6 +14,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import InstallBanner from './components/InstallBanner'
 import MaintenancePage from './components/MaintenancePage'
 
+const MovieBar = lazy(() => import('./components/MovieBar'))
+const MovieBarWatch = lazy(() => import('./components/MovieBarWatch'))
 const IS_MAINTENANCE = import.meta.env.VITE_MAINTENANCE_MODE === 'true'
 
 // Site mode: 'stream' = full streaming site (anime.nusanime.web.id)
@@ -102,6 +104,8 @@ function App() {
                 <Route path="/watch/:episodeId" element={SITE_MODE === 'db' ? <WatchRedirect /> : <Watch />} />
                 <Route path="/download" element={<Download />} />
                   <Route path="/movie" element={<Movie />} />
+                  <Route path="/moviebar" element={<MovieBar />} />
+                  <Route path="/moviebar/:tmdbId" element={<MovieBarWatch />} />
                   <Route path="/live-action" element={<LiveAction />} />
                 <Route path="/privacy" element={<LegalPage />} />
                 <Route path="/disclaimer" element={<LegalPage />} />

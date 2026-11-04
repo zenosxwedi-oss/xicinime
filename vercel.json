@@ -13,6 +13,10 @@
       "destination": "/manifest.json"
     },
     {
+      "source": "/javapi-proxy/:path*",
+      "destination": "https://vpn.nusanime.web.id/javapi/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
